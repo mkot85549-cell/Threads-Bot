@@ -247,7 +247,7 @@ Threads-Bot/
 ### Step 1: Clone and Prepare Environment
 
 ```bash
-git clone https://github.com/your-username/threads-bot.git
+git clone https://github.com/mkot85549-cell/Threads-Bot.git
 cd threads-bot
 
 python -m venv .venv
