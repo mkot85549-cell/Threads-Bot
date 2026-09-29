@@ -2,9 +2,9 @@
 
 # 🧵 Threads Bot
 
-**Production-ready, open-source automation suite and management engine for Meta Threads, powered by Claude AI.**
+**Self-hosted automation and management suite for Meta Threads, powered by Claude AI.**
 
-Scheduled post generation, audience engagement, keyword-based outreach, self-optimizing system prompts, and rich analytics — managed from a web dashboard, Telegram Mini App (TMA), and Telegram bot.
+Scheduled post generation, reply handling, optional keyword-based outreach, engagement-driven prompt optimization, and analytics — managed from a web dashboard, a Telegram Mini App (TMA), and a Telegram bot.
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -12,9 +12,10 @@ Scheduled post generation, audience engagement, keyword-based outreach, self-opt
 [![SQLite](https://img.shields.io/badge/SQLite-WAL-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Anthropic](https://img.shields.io/badge/AI-Claude-D97757?logo=anthropic&logoColor=white)](https://docs.anthropic.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-complete%20%C2%B7%20not%20actively%20maintained-lightgrey.svg)](#-project-status)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Features](#-features) · [Architecture](#-architecture) · [Tech Stack](#-tech-stack) · [Project Structure](#-project-structure) · [Quick Start](#-quick-start) · [Configuration](#-configuration) · [Database & Migrations](#-database--migrations) · [Security](#-security) · [License](#-license)
+[Status](#-project-status) · [Features](#-features) · [Architecture](#-architecture) · [Tech Stack](#-tech-stack) · [Project Structure](#-project-structure) · [Quick Start](#-quick-start) · [Configuration](#-configuration-reference) · [Database & Migrations](#-database--migrations) · [Security](#-security) · [Limitations & Roadmap](#-limitations--roadmap) · [License](#-license)
 
 </div>
 
@@ -22,48 +23,79 @@ Scheduled post generation, audience engagement, keyword-based outreach, self-opt
 
 ## 📋 Overview
 
-**Threads Bot** is an extensible, self-hosted automation and growth engine designed for multi-account Meta Threads management. Built with FastAPI, Aiogram 3, and Anthropic Claude, it bridges enterprise-grade background orchestration with simple, passwordless user management.
+**Threads Bot** is a self-hosted backend for managing multiple Meta Threads accounts. It combines a FastAPI web application, an Aiogram 3 Telegram bot, and a set of background workers that handle publishing, replies, token renewal, and analytics.
 
-Whether managing a personal creator profile, running marketing experiments, or deploying a multi-tenant subscription SaaS, Threads Bot provides all the plumbing: background dispatchers, safety guards, token refreshers, and analytics.
+The project is a good reference for:
+
+- FastAPI with an async lifespan that supervises background workers
+- OAuth 2.0 against an external API, including long-lived token refresh
+- Telegram Mini App authentication (`initData` validation)
+- Idempotent payment handling and atomic promo code redemption
+- Working with rate-limited LLM and social APIs
+
+---
+
+## 📌 Project Status
+
+The bot is **feature-complete and works**, but it is **not actively maintained**.
+
+It was originally built as a product. A public launch requires Meta business verification and App Review for the Threads API, and I decided not to pursue the business side. The code is published as-is, mainly as a portfolio project and as a working example of the stack above.
+
+What this means in practice:
+
+- Without App Review, the app only works for accounts added to your Meta app as testers.
+- `threads_keyword_search` requires separate approval, so outreach is **disabled by default** (see [Meta App Review & Permissions](#-meta-app-review--permissions)).
+- Issues and pull requests are welcome, but responses may be slow.
+
+---
+
+## 📸 Screenshots
+
+-- Add screenshots or a short GIF here, for example:
+[Dashboard](docs/screenshots/dashboard.png)
+[Telegram Mini App](docs/screenshots/tma.png)
+
 
 ---
 
 ## ✨ Features
 
-### 🤖 Intelligent Content Generation & Styling
-- **Claude AI Integration**: Powered by Anthropic Claude (configurable via `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`), with viral style guides cached in-memory ([`post_style_viral_threads.md`](post_style_viral_threads.md)).
-- **Diverse Personas (`ai_skill`)**: Built-in voice profiles: `neutral`, `crypto_bro`, `analyst`, `provocateur`, `storyteller`, `hustler`, `philosopher`.
-- **Adaptive Content Guard**: [`text_guard.py`](text_guard.py) strips wrapping quotes safely without altering inner dialogue, ensures alphanumeric content density, and enforces Meta's 500-character ceiling.
-- **Layered Safety Filters**: Multi-stage ban-word validation preventing spam, adult themes, and financial scams.
-- **Multilingual Support**: Out-of-the-box system prompting for English (`en`), Russian (`ru`), and Ukrainian (`uk`).
+### 🤖 Content Generation & Styling
+- **Claude integration**: Powered by Anthropic Claude (configurable via `ANTHROPIC_MODEL`, default `claude-sonnet-5-5`), with a style guide cached in memory ([`post_style_viral_threads.md`](post_style_viral_threads.md)).
+- **Personas (`ai_skill`)**: Built-in voice profiles: `neutral`, `crypto_bro`, `analyst`, `provocateur`, `storyteller`, `hustler`, `philosopher`.
+- **Content guard**: [`text_guard.py`](text_guard.py) strips wrapping quotes without altering inner dialogue, checks alphanumeric density, and enforces Meta's 500-character limit.
+- **Layered safety filters**: Multi-stage ban-word validation against spam, adult themes, and financial scams.
+- **Languages**: System prompts for English (`en`), Russian (`ru`), and Ukrainian (`uk`).
 
-### 💬 Engagement & Audience Growth
-- **Smart Auto-Replies (`listener`)**: Continuously monitors incoming replies on your recent threads and responds with either a fixed template or dynamic, context-aware AI answers. Deduplication guaranteed via SQLite.
-- **Keyword-Driven Outreach (`outreach_bot`)**: Discovers target discussions via the Meta Graph API `/keyword_search` endpoint and drops thoughtful replies matching your brand voice. Includes built-in self-commenting prevention.
-- **Async Media Polling**: Two-step publishing pipeline that polls Meta's container status (`IN_PROGRESS` → `FINISHED`) for flawless image posts.
+### 💬 Engagement
+- **Auto-replies (`listener`)**: Monitors replies on your recent threads and answers with a fixed template or a context-aware AI reply. Deduplication is handled in SQLite.
+- **Keyword outreach (`outreach_bot`, optional, off by default)**: Finds relevant discussions through the Meta Graph API `/keyword_search` endpoint and replies in your brand voice. Includes self-comment prevention. Requires Meta approval for `threads_keyword_search`.
+- **Async media publishing**: Two-step pipeline that polls Meta's container status (`IN_PROGRESS` → `FINISHED`) for image posts.
 
-### 🧠 Self-Optimizing Prompts (RLHF Loop)
-- **Automated Feedback Analyzer (`feedback_analyzer.py`)**: Runs every 6 hours (or on-demand). Computes a weighted engagement score `(likes + replies*2 + reposts*3) / views`, compares top-10% vs bottom-10% performing posts, and uses Claude to synthesize and activate improved system prompts in `system_prompts`.
+### 🧠 Engagement-Driven Prompt Optimization
+- **Feedback analyzer (`feedback_analyzer.py`)**: Runs every 6 hours (or on demand). Computes a weighted engagement score `(likes + replies*2 + reposts*3) / views`, compares the top 10% and bottom 10% of posts, and asks Claude to draft an improved system prompt, which is stored and activated in `system_prompts`.
 
-### 🔑 Automated Token Lifecycle
-- **Long-Lived Token Refresher (`token_refresher.py`)**: Automatically scans and refreshes 60-day Meta Graph access tokens older than 20 days.
-- **Revocation Alerts**: Detects OAuth errors (code 190) and immediately notifies account owners on Telegram to reconnect their accounts.
+> This is prompt tuning based on engagement metrics, not model training.
+
+### 🔑 Token Lifecycle
+- **Token refresher (`token_refresher.py`)**: Refreshes 60-day Meta long-lived tokens once they are older than 20 days.
+- **Revocation alerts**: Detects OAuth errors (code 190) and notifies the account owner in Telegram to reconnect.
 
 ### 📊 Privacy-Preserving Analytics
-- **Page-View Tracking**: Non-blocking Starlette middleware logging hits into SQLite without slowing HTTP request handling.
-- **Salted Anonymization**: IP addresses are hashed using HMAC-SHA256 with `SECRET_AUTH_KEY`; raw client IPs are **never** stored.
-- **Insights Aggregation**: Periodically synchronizes views, likes, replies, and reposts directly from Meta into a high-speed daily cache (`stats_cache`).
+- **Page-view tracking**: Non-blocking Starlette middleware that logs hits into SQLite.
+- **Salted anonymization**: IP addresses are hashed with HMAC-SHA256 using `SECRET_AUTH_KEY`; raw client IPs are never stored.
+- **Insights aggregation**: Periodically syncs views, likes, replies, and reposts from Meta into a daily cache (`stats_cache`).
 
-### 📱 Dual Frontend: Web & Telegram Mini App (TMA)
-- **Responsive Web Dashboard**: Jinja2-based dashboard for account parameters, delays, prompt management, and statistics.
-- **Telegram Mini App (`/tma`)**: Fully integrated WebApp allowing users to manage accounts and toggle workers natively inside Telegram.
-- **Passwordless Auth**: HMAC-SHA256 signed magic links for web browser login, and cryptographic `initData` validation with timestamp freshness for TMA.
+### 📱 Web Dashboard & Telegram Mini App
+- **Web dashboard**: Jinja2-based UI for account parameters, delays, prompt management, and statistics.
+- **Telegram Mini App (`/tma`)**: Manage accounts and toggle workers from inside Telegram.
+- **Passwordless auth**: HMAC-SHA256 signed magic links for the web dashboard, and cryptographic `initData` validation with timestamp freshness checks for the TMA.
 
-### 💳 Monetization & Billing Engine
-- **CryptoPay Integration**: Built-in payment gateway ([`aiocryptopay`](https://github.com/aiocryptopay/aiocryptopay)) supporting USDT, TON, BTC, ETH, and other crypto assets.
-- **Exactly-Once Crediting**: Atomic invoice status transitions (`pending` → `done`) prevent double-crediting race conditions.
-- **Promo Code Engine**: Atomic code redemption with per-user usage tracking, expiration dates, and brute-force protection.
-- **Channel Subscription Gate**: Optional Telegram middleware requiring users to follow a specific Telegram channel before accessing bot features (with fail-open fault tolerance).
+### 💳 Billing
+- **CryptoPay integration**: Payments via [`aiocryptopay`](https://github.com/aiocryptopay/aiocryptopay) in USDT, TON, BTC, ETH, and other assets.
+- **Exactly-once crediting**: Atomic invoice status transitions (`pending` → `done`) prevent double crediting.
+- **Promo codes**: Atomic redemption with per-user usage tracking, expiration dates, and rate limiting.
+- **Channel subscription gate**: Optional Telegram middleware that requires users to follow a channel first (fails open on errors).
 
 ---
 
@@ -87,12 +119,12 @@ flowchart TD
         LOCK["workers.lock<br/>(fcntl supervisor guard)"]
     end
 
-    subgraph Workers["Background Supervisors (Daemon Threads)"]
+    subgraph Workers["Background Workers (Daemon Threads)"]
         FARM["farm-dispatcher<br/>Scheduled publishing"]
         LISTENER["listener<br/>Incoming reply monitor"]
-        OUTREACH["outreach-dispatcher<br/>Keyword discovery"]
+        OUTREACH["outreach-dispatcher<br/>Keyword discovery (optional)"]
         INSIGHTS["insights-scheduler<br/>Meta Graph metrics sync"]
-        ANALYZER["feedback-analyzer<br/>Prompt tuning (RLHF)"]
+        ANALYZER["feedback-analyzer<br/>Prompt optimization"]
         REFRESHER["token-refresher<br/>60-day token rotation"]
     end
 
@@ -107,23 +139,19 @@ flowchart TD
         DB[("SQLite Database<br/>WAL Mode + Busy Timeout 10s")]
     end
 
-    %% Client Interactions
     WEB_USER --> AUTH_MW --> ROUTER_WEB
     TMA_USER --> TMA_AUTH --> ROUTER_TMA
     TG_USER -. Magic Link / WebApp .-> CoreApp
     TG_USER <--> TG_API
 
-    %% App & DB
     ROUTER_WEB --> DB
     ROUTER_TMA --> DB
     ROUTER_STATS --> DB
     PV_MW -. Async Insert .-> DB
 
-    %% Supervisor & Workers
     CoreApp --> LOCK --> Workers
     Workers --> DB
 
-    %% Worker Integrations
     FARM --> CLAUDE
     FARM --> META
     LISTENER --> CLAUDE
@@ -135,9 +163,10 @@ flowchart TD
     REFRESHER --> META
     REFRESHER -. Alerts .-> TG_API
 
-    %% Bot & Crypto
     TG_API <--> CRYPTO
 ```
+
+The web application starts the six background workers in its lifespan handler. A file lock (`workers.lock`) ensures that only one Uvicorn process runs them, even if the web app is scaled to several processes.
 
 ---
 
@@ -145,14 +174,14 @@ flowchart TD
 
 | Layer | Technology | Details |
 |---|---|---|
-| **Language** | Python 3.10+ | Strict type annotations, asynchronous routines (`asyncio`) |
-| **Web Framework** | FastAPI + Uvicorn | High performance, dependency injection, async lifespan |
-| **Telegram Bot** | Aiogram 3.x | Modern asynchronous Telegram framework with custom middlewares |
-| **Telegram Mini App** | Telegram WebApp SDK + Vanilla JS | Responsive interface, cryptographic `initData` verification |
-| **Database** | SQLite (WAL Mode) | Write-Ahead Logging, `busy_timeout=10000`, single source schema |
-| **AI Provider** | Anthropic Claude | Claude (Sonnet / Haiku) with thread-safe rate-limit semaphore |
+| **Language** | Python 3.10+ | Type hints, `asyncio` for I/O-bound work |
+| **Web framework** | FastAPI + Uvicorn | Dependency injection, async lifespan, REST endpoints for the TMA |
+| **Telegram bot** | Aiogram 3.x | Async Telegram framework with custom middlewares |
+| **Telegram Mini App** | Telegram WebApp SDK + Vanilla JS | Cryptographic `initData` verification |
+| **Database** | SQLite (WAL mode) | `busy_timeout=10000`, single-source schema |
+| **AI provider** | Anthropic Claude | Sonnet / Haiku, retry backoff, global rate-limit semaphore |
 | **Social API** | Meta Threads Graph API | Long-lived OAuth tokens, container publishing, keyword search |
-| **Payments** | CryptoBot (aiocryptopay) | Invoices in TON, USDT, BTC, ETH with instant verification |
+| **Payments** | CryptoBot (aiocryptopay) | Invoices in TON, USDT, BTC, ETH |
 | **Security** | `itsdangerous` + HMAC-SHA256 | Signed session cookies, time-bound magic links, IP hashing |
 
 ---
@@ -162,7 +191,7 @@ flowchart TD
 ```text
 Threads-Bot/
 ├── .env.example             # Template for environment variables and secrets
-├── requirements.txt         # Pinned Python package dependencies
+├── requirements.txt         # Python dependencies
 ├── config.py                # Environment parser & startup validator
 ├── schema.py                # Single source of truth for SQLite DDL & indexes
 ├── db_utils.py              # Database connection helper (WAL mode + timeout)
@@ -170,23 +199,23 @@ Threads-Bot/
 ├── web_app.py               # FastAPI application, auth routes, worker supervisor
 ├── session_auth.py          # Cookie sessions using itsdangerous signed tokens
 ├── tma_auth.py              # Telegram Mini App initData signature validator
-├── tma_routes.py            # REST API endpoints for Telegram Mini App
+├── tma_routes.py            # REST API endpoints for the Telegram Mini App
 ├── stats_routes.py          # Analytics dashboard, raw JSON, and CSV export
 │
-├── farm_manager.py          # Worker: Post scheduling, prompt rotation, publisher
-├── listener.py              # Worker: Thread reply monitor and auto-replier
-├── outreach_bot.py          # Worker: Keyword search and context outreach
-├── token_refresher.py       # Worker: 60-day Meta token auto-renewal daemon
-├── feedback_analyzer.py     # Worker / CLI: Engagement analyzer & prompt generator
-├── analytics_service.py     # Worker & Service: Page views & Meta insights poller
+├── farm_manager.py          # Worker: post scheduling, prompt rotation, publisher
+├── listener.py              # Worker: reply monitor and auto-replier
+├── outreach_bot.py          # Worker: keyword search and contextual replies
+├── token_refresher.py       # Worker: 60-day Meta token renewal
+├── feedback_analyzer.py     # Worker / CLI: engagement analysis & prompt generation
+├── analytics_service.py     # Service: page views & Meta insights poller
 │
 ├── ai_service.py            # Anthropic Claude API client with retry backoff
 ├── social_service.py        # Meta Threads Graph API client & container poller
 ├── text_guard.py            # Alphanumeric density & quote normalization guard
-├── post_style_viral_threads.md # Seed guide for viral Threads formatting
+├── post_style_viral_threads.md # Seed style guide for Threads posts
 │
-├── tg_bot.py                # Aiogram 3 Telegram bot: user menu, crypto, admin CLI
-├── recovery_tool.py         # Administrative disaster-recovery & payment auditor
+├── tg_bot.py                # Aiogram 3 Telegram bot: user menu, payments, admin commands
+├── recovery_tool.py         # Admin disaster-recovery & payment auditing tool
 │
 ├── migrations/
 │   └── migrate.py           # Standalone idempotent migration runner
@@ -204,106 +233,94 @@ Threads-Bot/
 
 ## 🚀 Quick Start
 
+**Deployment target:** Linux server. The worker lock uses `fcntl`, and the project has been tested on Linux only.
+
 ### Prerequisites
 
 1. **Python 3.10 or higher**
-2. **Anthropic API Key**: [console.anthropic.com](https://console.anthropic.com/)
-3. **Telegram Bot Token**: Created via [@BotFather](https://t.me/BotFather)
-4. **Meta Developer App**: Configure a **Threads App** in the [Meta Developer Portal](https://developers.facebook.com/)
-5. **CryptoBot API Token** *(optional)*: Created via [@CryptoBot](https://t.me/CryptoBot) for payment handling
-
----
+2. **Anthropic API key**: [console.anthropic.com](https://console.anthropic.com/)
+3. **Telegram bot token**: created via [@BotFather](https://t.me/BotFather)
+4. **Meta developer app**: a Threads app configured in the [Meta Developer Portal](https://developers.facebook.com/); add your own Threads accounts as testers
+5. **CryptoBot API token** *(optional)*: created via [@CryptoBot](https://t.me/CryptoBot) for payments
+6. **A public HTTPS URL** for the OAuth callback and the Mini App (for example, behind Caddy or Nginx)
 
 ### Step 1: Clone and Prepare Environment
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-username/threads-bot.git
 cd threads-bot
 
-# Create and activate virtual environment
 python -m venv .venv
-source .venv/bin/activate       # Linux/macOS
-# or: .venv\Scripts\activate    # Windows
-
-# Install dependencies
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
-
 ### Step 2: Configure Environment Variables
-
-Copy the template configuration file:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` in your editor and configure your credentials:
+Edit `.env`:
 
 ```dotenv
-# Required Core Secrets
+# Required core secrets
 ANTHROPIC_API_KEY=sk-ant-api03-...
 TG_BOT_TOKEN=1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ
 SECRET_AUTH_KEY=use_at_least_32_characters_random_string_here
 
-# Threads / Meta Developer Credentials
+# Threads / Meta developer credentials
 THREADS_APP_ID=your_threads_app_id
 THREADS_APP_SECRET=your_threads_app_secret
 REDIRECT_URI=https://yourdomain.com/auth/threads/callback
 
-# Payments (CryptoBot)
+# Payments (optional)
 CRYPTO_PAY_TOKEN=12345:AAGMYyourCryptoPayToken
 
-# Server Settings
+# Server settings
 BASE_URL=https://yourdomain.com
 DB_NAME=farm.db
 COOKIE_SECURE=1
 TRUST_PROXY=1
 
-# Optional Flags
+# Optional flags
 ANTHROPIC_MODEL=claude-sonnet-5-5
 THREADS_KEYWORD_SEARCH=0
 ```
 
 > [!TIP]
-> Generate a strong `SECRET_AUTH_KEY` using Python:
+> Generate a strong `SECRET_AUTH_KEY`:
 > ```bash
 > python -c "import secrets; print(secrets.token_hex(32))"
 > ```
 
----
-
 ### Step 3: Run Database Migrations
-
-Initialize the SQLite database with all tables, constraints, and indexes:
 
 ```bash
 python migrations/migrate.py
 ```
 
----
-
 ### Step 4: Run the Application
 
-The suite consists of two primary services:
+The suite runs as two processes.
 
-#### 1. Web Application & Background Workers
-Run the FastAPI web server. On startup, it automatically acquires the single-process lock and spins up the 6 background worker threads:
+**1. Web application and background workers**
+
+On startup the FastAPI app acquires the single-process lock and starts the six background workers:
 
 ```bash
 uvicorn web_app:app --host 0.0.0.0 --port 8000
 ```
 
-#### 2. Telegram Bot
-In a separate terminal (or systemd service), run the Telegram bot:
+**2. Telegram bot**
+
+In a separate terminal or as a systemd service:
 
 ```bash
 python tg_bot.py
 ```
 
-Now, open your Telegram bot, run `/start`, and launch either the **Telegram Mini App** or use the **Magic Link** to log into the web dashboard.
+Open your bot in Telegram, send `/start`, and launch the **Mini App** or use the **magic link** to log in to the web dashboard.
 
 ---
 
@@ -312,82 +329,84 @@ Now, open your Telegram bot, run `/start`, and launch either the **Telegram Mini
 | Variable | Required | Default | Description |
 |---|:---:|---|---|
 | `SECRET_AUTH_KEY` | ✅ | — | Random 32+ character key for HMAC signatures and session cookies |
-| `ANTHROPIC_API_KEY` | ✅ | — | Anthropic Claude API key |
-| `TG_BOT_TOKEN` | ✅ | — | Telegram Bot token from @BotFather |
-| `THREADS_APP_ID` | ✅ | — | Meta App ID for Threads OAuth flow |
-| `THREADS_APP_SECRET` | ✅ | — | Meta App Secret for exchanging OAuth codes |
+| `ANTHROPIC_API_KEY` | ✅ | — | Anthropic API key |
+| `TG_BOT_TOKEN` | ✅ | — | Telegram bot token from @BotFather |
+| `THREADS_APP_ID` | ✅ | — | Meta app ID for the Threads OAuth flow |
+| `THREADS_APP_SECRET` | ✅ | — | Meta app secret for exchanging OAuth codes |
 | `REDIRECT_URI` | ✅ | — | OAuth callback URL (e.g. `https://domain.com/auth/threads/callback`) |
-| `CRYPTO_PAY_TOKEN` | ➖ | — | CryptoBot token for crypto subscription payments |
-| `BASE_URL` | ➖ | `https://domain.com` | Public base URL used for generating web magic login links |
+| `CRYPTO_PAY_TOKEN` | ➖ | — | CryptoBot token for crypto payments |
+| `BASE_URL` | ➖ | `https://domain.com` | Public base URL used for magic login links |
 | `DB_NAME` | ➖ | `farm.db` | Path to the SQLite database file |
-| `ANTHROPIC_MODEL` | ➖ | `claude-sonnet-5-5` | Specific Claude model identifier |
-| `THREADS_KEYWORD_SEARCH`| ➖ | `0` | Set to `1` only after Meta approves `threads_keyword_search` in App Review |
-| `COOKIE_SECURE` | ➖ | `1` | `1` forces HTTPS `Secure` cookies. Set `0` only for local HTTP debugging |
-| `TRUST_PROXY` | ➖ | `1` | Set `1` when deployed behind Caddy/Nginx to read `X-Forwarded-For` |
+| `ANTHROPIC_MODEL` | ➖ | `claude-sonnet-5-5` | Claude model identifier |
+| `THREADS_KEYWORD_SEARCH` | ➖ | `0` | Set to `1` only after Meta approves `threads_keyword_search` |
+| `COOKIE_SECURE` | ➖ | `1` | `1` forces HTTPS-only cookies. Use `0` only for local debugging |
+| `TRUST_PROXY` | ➖ | `1` | Set to `1` behind Caddy/Nginx to read `X-Forwarded-For` |
 
 ---
 
-## 🔄 Meta App Review & Permissions Notice
+## 🔄 Meta App Review & Permissions
 
-Meta restricts Threads API capabilities based on permission approval levels:
+Meta restricts Threads API capabilities by permission level:
 
-| Permission | Default Status | Required For |
+| Permission | Default status | Required for |
 |---|---|---|
 | `threads_basic` | Standard | Reading profile data and account ID |
 | `threads_content_publish` | Standard | Publishing posts, image containers, and replies |
 | `threads_manage_insights` | Standard / Review | Reading views, likes, and reply metrics |
-| `threads_keyword_search` | **App Review Required** | Searching public posts by keyword across the platform |
+| `threads_keyword_search` | **App Review required** | Searching public posts by keyword |
 
 > [!WARNING]
-> Without approved `threads_keyword_search` in Meta App Review, Meta's `/keyword_search` endpoint **only returns posts created by the authenticated account itself**.
-> The `outreach_bot` detects this and skips self-authored posts. Keep `THREADS_KEYWORD_SEARCH=0` in `.env` until Meta grants your app full keyword search permissions.
+> Without an approved `threads_keyword_search`, Meta's `/keyword_search` endpoint only returns posts created by the authenticated account itself. `outreach_bot` detects this and skips self-authored posts. Keep `THREADS_KEYWORD_SEARCH=0` until Meta grants the permission.
+
+Using the app with accounts other than your own testers requires Meta business verification and App Review. See [Project Status](#-project-status).
 
 ---
 
 ## 🤖 Telegram Bot & Admin Commands
 
 ### User Commands
-- `/start` — Register, display main menu, access web dashboard magic link or launch Telegram Mini App.
+- `/start` — Register, show the main menu, open the web dashboard via magic link, or launch the Mini App.
 - `/help` — Usage instructions and feature guide.
-- `/code <code>` — Redeem a promo code (rate-limited to 5 attempts/minute).
+- `/code <code>` — Redeem a promo code (rate-limited to 5 attempts per minute).
 
 ### Administrator Commands
-Admin status is granted to Telegram user IDs defined in `ADMIN_IDS` in [`tg_bot.py`](tg_bot.py) or dynamically promoted via `/mk_boss`.
+
+Set your own Telegram user IDs in `ADMIN_IDS` in [`tg_bot.py`](tg_bot.py) before the first run. Additional admins can be promoted at runtime with `/mk_boss`.
 
 | Command | Arguments | Description |
 |---|---|---|
 | `/trial` | `<user_id> [days=3]` | Grant a temporary trial subscription |
 | `/gencode` | `<days> [max_accounts] [max_uses] [prefix]` | Generate single-use or multi-use promo codes |
-| `/codes` | — | List all active promo codes with remaining uses |
+| `/codes` | — | List active promo codes with remaining uses |
 | `/delcode` | `<code>` | Delete or deactivate a promo code |
-| `/revoke` | `<user_id>` | Immediately revoke a user's subscription and deactivate bots |
-| `/users` | — | Display all registered users and subscription expiration dates |
-| `/mk_boss` | `<user_id>` | Dynamically promote a user to admin during runtime |
+| `/revoke` | `<user_id>` | Revoke a user's subscription and deactivate their bots |
+| `/users` | — | List registered users and subscription expiration dates |
+| `/mk_boss` | `<user_id>` | Promote a user to admin at runtime |
 
 ---
 
 ## 🗄️ Database & Migrations
 
-The database is built on **SQLite in WAL mode** (`PRAGMA journal_mode=WAL`), providing high concurrency across web requests and background threads without lock starvation.
+The database is **SQLite in WAL mode** (`PRAGMA journal_mode=WAL`), which allows concurrent reads while web requests and background threads write.
 
-### Schema Architecture ([`schema.py`](schema.py))
-- `users`: Telegram user profiles, subscription end dates, allowed account quotas.
-- `accounts`: Connected Threads accounts, OAuth tokens, styles, delays, proxies, and assigned personas.
-- `publications_log`: Log of every published post, reply, and outreach comment, with live metrics.
-- `system_prompts`: Active and historical prompts created manually or by the RLHF feedback analyzer.
-- `page_views`: Salted HMAC-hashed pageview logs for privacy-first telemetry.
-- `stats_cache`: Pre-aggregated daily metrics for high-speed dashboard analytics.
-- `invoices`: CryptoPay invoices with immutable state transition tracking.
-- `promo_codes` & `promo_uses`: Reconciled promo codes with atomic `uses_left` decrementing.
-- `ban_words` & `processed_replies`: Content filtering terms and deduplication keys.
+### Schema ([`schema.py`](schema.py))
+- `users`: Telegram user profiles, subscription end dates, account quotas.
+- `accounts`: Connected Threads accounts, OAuth tokens, styles, delays, proxies, personas.
+- `publications_log`: Every published post, reply, and outreach comment, with live metrics.
+- `system_prompts`: Active and historical prompts, created manually or by the feedback analyzer.
+- `page_views`: Salted, hashed page-view logs.
+- `stats_cache`: Pre-aggregated daily metrics for dashboard analytics.
+- `invoices`: CryptoPay invoices with tracked state transitions.
+- `promo_codes` & `promo_uses`: Promo codes with atomic `uses_left` decrementing.
+- `ban_words` & `processed_replies`: Content filter terms and deduplication keys.
 
 ### Running Migrations
 
 ```bash
-# Standard migration on default DB
+# Default database
 python migrations/migrate.py
 
-# Migration on custom database path
+# Custom database path
 python migrations/migrate.py /var/data/custom_farm.db
 
 # Clear legacy placeholder reply phrases
@@ -398,41 +417,65 @@ python migrations/migrate.py --clean-placeholders
 
 ## 🛡️ Security
 
-1. **Cryptographic Sessions**: Session cookies are signed with `itsdangerous` using SHA-256 HMAC and timestamp validation.
-2. **Strict TMA Authentication**: Telegram Mini App requests validate raw `initData` against `WebAppData` secret keys. Stale signatures (`auth_date > 24h`) and future timestamps are rejected.
-3. **Salted IP Privacy**: Client IPs are hashed via `hmac.new(SECRET_AUTH_KEY, ip, sha256)` before storing in `page_views`.
-4. **Single-Worker Concurrency Lock**: On Unix systems, `workers.lock` is acquired via `fcntl.flock(LOCK_EX | LOCK_NB)` ensuring only one Uvicorn process runs background dispatchers when scaled horizontally.
-5. **Thread-Safe AI Rate Limiting**: Anthropic API requests are metered using a global `threading.BoundedSemaphore(8)` across both synchronous and asynchronous routines.
-6. **No Committed Secrets**: All sensitive credentials are kept strictly in `.env`.
+1. **Signed sessions**: Session cookies are signed with `itsdangerous` (HMAC-SHA256) with timestamp validation.
+2. **Strict TMA authentication**: Mini App requests validate raw `initData` against the `WebAppData` secret. Signatures older than 24 hours and future timestamps are rejected.
+3. **Salted IP hashing**: Client IPs are hashed with `hmac.new(SECRET_AUTH_KEY, ip, sha256)` before being stored in `page_views`.
+4. **Single-process worker lock**: `workers.lock` is acquired via `fcntl.flock(LOCK_EX | LOCK_NB)`, so only one Uvicorn process runs the background workers.
+5. **Global AI rate limit**: Anthropic API calls are metered with a `threading.BoundedSemaphore(8)` across sync and async code paths.
+6. **No committed secrets**: All credentials live in `.env`, which must never be committed.
+
+See [Limitations](#-limitations--roadmap) for known gaps, including token storage.
 
 ---
 
 ## ⚖️ Responsible Use & Platform Policy
 
-This tool interacts with the Meta Threads Graph API. Users are strictly responsible for adhering to Meta's developer policies and local laws:
-- Only automate accounts that you own or have explicit authorization to manage.
-- Respect rate limits and maintain realistic delays (`pub_delay_min` / `pub_delay_max`).
-- Do not engage in mass spamming, deceptive impersonation, or harassment.
-- Be transparent about automated activity where required by regulations.
+This tool talks to the Meta Threads Graph API. You are responsible for following Meta's developer policies and local laws:
+
+- Only automate accounts that you own or are explicitly authorized to manage.
+- Respect rate limits and keep realistic delays (`pub_delay_min` / `pub_delay_max`).
+- Do not use the tool for mass spam, deceptive impersonation, or harassment.
+- Disclose automated activity where regulations require it.
 
 The authors assume no liability for misuse, account suspensions, or platform penalties.
 
 ---
 
+## 🚧 Limitations & Roadmap
+
+Known limitations:
+
+- **Single instance**: SQLite and the single-process worker lock suit one server instance and a moderate number of accounts. Horizontal scaling is not supported.
+- **Token storage**: Meta access tokens are stored in the SQLite database. Restrict file permissions on the database file. Application-level encryption at rest is not implemented.
+- **No automated tests**: The only check in the contribution flow is `python -m py_compile`.
+- **Linux only**: Tested on Linux. The worker lock depends on `fcntl`.
+- **Meta approval**: Public use requires business verification and App Review (see [Project Status](#-project-status)).
+
+Ideas for future work:
+
+- [ ] `pytest` suite for token handling, billing, promo codes, and text guard
+- [ ] CI (lint, type check, tests) via GitHub Actions
+- [ ] `Dockerfile` and `docker-compose.yml`
+- [ ] Encrypt stored tokens (for example with Fernet and a key from the environment)
+- [ ] PostgreSQL support and a job queue (for example Redis) for horizontal scaling
+- [ ] Load `ADMIN_IDS` from the environment instead of the source file
+
+---
+
 ## 🤝 Contributing
 
-We welcome contributions! To get started:
+Contributions are welcome.
 
 1. **Fork** the repository.
-2. Create a feature branch: `git checkout -b feature/amazing-feature`.
-3. Commit your changes: `git commit -m "Add amazing feature"`.
-4. Ensure tests or syntax pass: `python -m py_compile *.py`.
+2. Create a feature branch: `git checkout -b feature/my-change`.
+3. Commit your changes: `git commit -m "Describe your change"`.
+4. Make sure the code compiles: `python -m py_compile *.py`.
 5. Open a **Pull Request**.
 
-Please ensure your pull requests follow existing architecture conventions and include no hardcoded secrets or environment-specific paths.
+Please follow the existing architecture conventions and do not include hardcoded secrets or environment-specific paths.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
