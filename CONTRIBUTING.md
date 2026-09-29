@@ -9,7 +9,7 @@ Thanks for your interest in contributing!
 The project targets Linux (the worker lock uses `fcntl`).
 
 ```bash
-git clone https://github.com/your-username/threads-bot.git
+git clone https://github.com/mkot85549-cell/Threads-Bot.git
 cd threads-bot
 
 python -m venv .venv
