@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика — ThreadsAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           DESIGN TOKENS — same system as index.html / edit.html
+        ═══════════════════════════════════════════════════════ */
+        :root {
+            --bg:          #080b14;
+            --bg2:         #0d1120;
+            --bg3:         #111827;
+            --surface:     rgba(255,255,255,.04);
+            --surface2:    rgba(255,255,255,.07);
+            --border:      rgba(255,255,255,.08);
+            --border2:     rgba(0,212,255,.2);
+
+            --cyan:        #00d4ff;
+            --cyan-dim:    rgba(0,212,255,.12);
+            --cyan-glow:   0 0 24px rgba(0,212,255,.3);
+
+            --violet:      #7c3aed;
+            --violet-dim:  rgba(124,58,237,.18);
+            --violet-glow: 0 0 24px rgba(124,58,237,.4);
+
+            --green:       #10d98e;
+            --green-dim:   rgba(16,217,142,.15);
+            --red:         #ff4d6a;
+            --amber:       #f59e0b;
+            --teal:        #06b6d4;
+            --pink:        #f472b6;
+            --orange:      #fb923c;
+
+            --txt:         #e8ecf4;
+            --txt2:        #8b95a8;
+            --txt3:        #4d5566;
+
+            --radius:      12px;
+            --radius-sm:   8px;
+            --font-display:'Syne', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+
+            /* Chart colors */
+            --chart-pv:    rgba(0,212,255,1);
+            --chart-posts: rgba(124,58,237,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--txt);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Animated nebula background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 15% 10%,  rgba(124,58,237,.12)  0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 80%,  rgba(0,212,255,.10)   0%, transparent 55%),
+                radial-gradient(ellipse 50% 60% at 50% 50%,  rgba(16,217,142,.04)  0%, transparent 70%);
+            animation: nebula 18s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        @keyframes nebula {
+            0%   { opacity: 1; transform: scale(1)    rotate(0deg); }
+            50%  { opacity: .8; transform: scale(1.06) rotate(1deg); }
+            100% { opacity: 1; transform: scale(1)    rotate(0deg); }
+        }
+
+        /* Grid overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+        }
+
+        /* ── Layout wrapper ─────────────────────────────────── */
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 0 24px 100px;
+        }
+
+        /* ── Top nav ────────────────────────────────────────── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 36px;
+        }
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: -.02em;
+            color: var(--txt);
+            text-decoration: none;
+        }
+        .topbar-brand span { color: var(--cyan); }
+        .topbar-brand .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 10px var(--cyan);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: .5; transform: scale(.85); }
+        }
+
+        .topbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: .85rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            color: var(--txt2);
+            background: var(--surface);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .nav-btn:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+        .nav-btn.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+
+        .refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-size: .85rem;
+            font-weight: 600;
+            border: 1px solid var(--cyan);
+            color: var(--bg);
+            background: var(--cyan);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .refresh-btn:hover { background: #00b8e0; transform: translateY(-1px); box-shadow: var(--cyan-glow); }
+        .refresh-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+        .refresh-btn svg { transition: transform .5s; }
+        .refresh-btn.spinning svg { animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Page header ────────────────────────────────────── */
+        .page-header {
+            margin-bottom: 32px;
+            animation: fadeUp .4s ease both;
+        }
+        .page-header h1 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -.03em;
+        }
+        .page-header h1 em { font-style: normal; color: var(--cyan); }
+        .page-header p { color: var(--txt2); font-size: .9rem; margin-top: 6px; }
+        .last-refresh { font-size: .78rem; color: var(--txt3); margin-top: 4px; }
+
+        /* ── KPI cards ──────────────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px 20px 18px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color .2s, transform .2s;
+            animation: fadeUp .4s ease both;
+        }
+        .kpi-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--accent-color, var(--cyan));
+            opacity: .7;
+        }
+
+        .kpi-icon {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 14px;
+            font-size: 1.1rem;
+            background: var(--accent-dim, var(--cyan-dim));
+        }
+        .kpi-label { font-size: .75rem; color: var(--txt3); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+        .kpi-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            color: var(--txt);
+            margin: 4px 0 2px;
+            line-height: 1;
+        }
+        .kpi-sub { font-size: .75rem; color: var(--txt3); }
+
+        /* Accent variants */
+        .kpi-card.cyan   { --accent-color: var(--cyan);   --accent-dim: var(--cyan-dim); }
+        .kpi-card.violet { --accent-color: var(--violet); --accent-dim: var(--violet-dim); }
+        .kpi-card.green  { --accent-color: var(--green);  --accent-dim: var(--green-dim); }
+        .kpi-card.amber  { --accent-color: var(--amber);  --accent-dim: rgba(245,158,11,.15); }
+        .kpi-card.pink   { --accent-color: var(--pink);   --accent-dim: rgba(244,114,182,.15); }
+        .kpi-card.orange { --accent-color: var(--orange); --accent-dim: rgba(251,146,60,.15); }
+
+        /* Stagger animation delays */
+        .kpi-card:nth-child(1) { animation-delay: .05s; }
+        .kpi-card:nth-child(2) { animation-delay: .10s; }
+        .kpi-card:nth-child(3) { animation-delay: .15s; }
+        .kpi-card:nth-child(4) { animation-delay: .20s; }
+        .kpi-card:nth-child(5) { animation-delay: .25s; }
+        .kpi-card:nth-child(6) { animation-delay: .30s; }
+        .kpi-card:nth-child(7) { animation-delay: .35s; }
+
+        /* ── Chart section ──────────────────────────────────── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+            animation: fadeUp .5s .15s ease both;
+        }
+
+        @media (max-width: 860px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+        .chart-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .chart-card-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: -.02em;
+        }
+        .chart-legend {
+            display: flex;
+            gap: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .78rem;
+            color: var(--txt2);
+        }
+        .legend-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+        .chart-wrap { position: relative; height: 240px; }
+
+        /* ── Bottom grid ────────────────────────────────────── */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+            animation: fadeUp .5s .25s ease both;
+        }
+        @media (max-width: 860px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+        /* ── Shared panel ───────────────────────────────────── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+        .panel-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: .95rem;
+            letter-spacing: -.02em;
+            margin-bottom: 18px;
+            color: var(--txt);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .panel-title-badge {
+            font-size: .7rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: var(--cyan-dim);
+            color: var(--cyan);
+            font-weight: 600;
+            letter-spacing: .04em;
+        }
+
+        /* ── Table ──────────────────────────────────────────── */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th {
+            font-size: .72rem;
+            color: var(--txt3);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            padding: 0 0 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .data-table td {
+            font-size: .85rem;
+            color: var(--txt2);
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { color: var(--txt); }
+
+        .path-cell {
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: monospace;
+            font-size: .8rem;
+            color: var(--cyan);
+        }
+        .hits-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 600;
+            background: var(--cyan-dim);
+            color: var(--cyan);
+        }
+
+        /* ── Recent publications ────────────────────────────── */
+        .pub-list { display: flex; flex-direction: column; gap: 12px; }
+        .pub-item {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            transition: border-color .2s;
+        }
+        .pub-item:hover { border-color: var(--border2); }
+        .pub-item-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .pub-account {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--cyan);
+        }
+        .pub-time {
+            font-size: .75rem;
+            color: var(--txt3);
+        }
+        .pub-text {
+            font-size: .85rem;
+            color: var(--txt2);
+            line-height: 1.45;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .pub-text.empty { font-style: italic; color: var(--txt3); }
+        .pub-metrics {
+            display: flex;
+            gap: 14px;
+        }
+        .metric-chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .78rem;
+            color: var(--txt3);
+        }
+        .metric-chip svg { opacity: .6; }
+        .pub-type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 1px 8px;
+            border-radius: 20px;
+            font-size: .7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+        .type-post     { background: var(--cyan-dim);   color: var(--cyan);   }
+        .type-reply    { background: var(--violet-dim); color: #a78bfa; }
+        .type-outreach { background: rgba(245,158,11,.15); color: var(--amber); }
+
+        /* ── Type breakdown doughnut ────────────────────────── */
+        .doughnut-wrap {
+            position: relative;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .doughnut-center {
+            position: absolute;
+            text-align: center;
+            pointer-events: none;
+        }
+        .doughnut-center .big {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -.04em;
+        }
+        .doughnut-center .small { font-size: .7rem; color: var(--txt3); text-transform: uppercase; letter-spacing: .06em; }
+
+        .type-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .type-legend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .type-legend-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .82rem;
+            color: var(--txt2);
+        }
+        .type-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+        .type-legend-val {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--txt);
+        }
+
+        /* ── Top accounts ───────────────────────────────────── */
+        .acc-list { display: flex; flex-direction: column; gap: 10px; }
+        .acc-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .acc-rank {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--txt3);
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .acc-bar-wrap { flex: 1; }
+        .acc-name { font-size: .84rem; font-weight: 500; color: var(--txt); margin-bottom: 5px; }
+        .acc-bar-bg {
+            height: 4px;
+            background: var(--surface2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .acc-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--cyan), var(--violet));
+            transition: width .8s cubic-bezier(.4,0,.2,1);
+        }
+        .acc-stats {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .acc-posts { font-size: .82rem; font-weight: 600; color: var(--txt); }
+        .acc-likes { font-size: .72rem; color: var(--txt3); }
+
+        /* ── Empty state ────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--txt3);
+        }
+        .empty-state .icon { font-size: 2rem; margin-bottom: 10px; opacity: .4; }
+        .empty-state p { font-size: .85rem; }
+
+        /* ── Status indicator ───────────────────────────────── */
+        .status-bar {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            font-size: .78rem;
+            color: var(--txt2);
+            box-shadow: 0 4px 20px rgba(0,0,0,.5);
+            transition: opacity .3s;
+        }
+        .status-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* ── Toast ──────────────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            z-index: 1000;
+            padding: 10px 20px;
+            background: var(--bg3);
+            border: 1px solid var(--cyan);
+            border-radius: var(--radius-sm);
+            color: var(--cyan);
+            font-size: .85rem;
+            font-weight: 500;
+            box-shadow: var(--cyan-glow);
+            transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
+            opacity: 0;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* ── Animations ─────────────────────────────────────── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <!-- ── Top Navigation ─────────────────────────────────── -->
+    <nav class="topbar">
+        <a href="/" class="topbar-brand">
+            <div class="dot"></div>
+            Threads<span>AI</span>
+        </a>
+        <div class="topbar-nav">
+            <a href="/" class="nav-btn">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Панель управления
+            </a>
+            <a href="/stats" class="nav-btn active">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6"  y1="20" x2="6"  y2="14"/>
+                </svg>
+                Аналитика
+            </a>
+            <button class="refresh-btn" id="refreshBtn" onclick="triggerRefresh()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                </svg>
+                Обновить метрики
+            </button>
+        </div>
+    </nav>
+
+    <!-- ── Page Header ────────────────────────────────────── -->
+    <header class="page-header">
+        <h1>Панель <em>Аналитики</em></h1>
+        <p>Трафик сайта, статистика публикаций и вовлечённость Threads — всё в одном месте.</p>
+        <div class="last-refresh" id="lastRefresh">Обновлено: только что</div>
+    </header>
+
+    <!-- ── Workers ──────────────────────────────────────────── -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:32px;">
+        <!-- Farm -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:space-between; padding:16px 20px; gap:12px;">
+            <div style="flex:1; min-width:0;">
+                <div style="font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--txt2); text-transform:uppercase; letter-spacing:.6px; margin-bottom:3px;">📤 Постинг</div>
+                <div style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500;">
+                    <span style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background:{% if farm_active %}var(--green); box-shadow:0 0 8px var(--green){% else %}var(--red){% endif %};"></span>
+                    <span style="color:{% if farm_active %}var(--green){% else %}var(--red){% endif %}">
+                        {% if farm_active %}Работает{% else %}Остановлен{% endif %}
+                    </span>
+                </div>
+            </div>
+            <form action="/start_farm" method="post">
+                <button type="submit" style="display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; border:1px solid {% if farm_active %}rgba(255,77,106,.3){% else %}rgba(16,217,142,.3){% endif %}; font-family:var(--font-body); font-size:12px; font-weight:600; cursor:pointer; background:{% if farm_active %}linear-gradient(135deg,rgba(255,77,106,.2),rgba(255,77,106,.1)){% else %}linear-gradient(135deg,rgba(16,217,142,.2),rgba(16,217,142,.1)){% endif %}; color:{% if farm_active %}var(--red){% else %}var(--green){% endif %}; white-space:nowrap;">
+                    {% if farm_active %}Стоп{% else %}Запуск{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <!-- Listener -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:space-between; padding:16px 20px; gap:12px;">
+            <div style="flex:1; min-width:0;">
+                <div style="font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--txt2); text-transform:uppercase; letter-spacing:.6px; margin-bottom:3px;">📡 Нейрокомментинг</div>
+                <div style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500;">
+                    <span style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background:{% if listener_active %}var(--green); box-shadow:0 0 8px var(--green){% else %}var(--red){% endif %};"></span>
+                    <span style="color:{% if listener_active %}var(--green){% else %}var(--red){% endif %}">
+                        {% if listener_active %}Сканирует{% else %}Остановлен{% endif %}
+                    </span>
+                </div>
+            </div>
+            <form action="/start_listener" method="post">
+                <button type="submit" style="display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; border:1px solid {% if listener_active %}rgba(255,77,106,.3){% else %}rgba(16,217,142,.3){% endif %}; font-family:var(--font-body); font-size:12px; font-weight:600; cursor:pointer; background:{% if listener_active %}linear-gradient(135deg,rgba(255,77,106,.2),rgba(255,77,106,.1)){% else %}linear-gradient(135deg,rgba(16,217,142,.2),rgba(16,217,142,.1)){% endif %}; color:{% if listener_active %}var(--red){% else %}var(--green){% endif %}; white-space:nowrap;">
+                    {% if listener_active %}Стоп{% else %}Запуск{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── KPI Cards ──────────────────────────────────────── -->
+    <div class="kpi-grid">
+        <div class="kpi-card cyan">
+            <div class="kpi-icon">👁️</div>
+            <div class="kpi-label">Просмотры страниц</div>
+            <div class="kpi-value" id="kpi-pv">{{ total_pageviews }}</div>
+            <div class="kpi-sub">Все сессии</div>
+        </div>
+        <div class="kpi-card violet">
+            <div class="kpi-icon">👤</div>
+            <div class="kpi-label">Уникальные посетители</div>
+            <div class="kpi-value" id="kpi-uv">{{ unique_visitors }}</div>
+            <div class="kpi-sub">По хэшу IP</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-icon">📝</div>
+            <div class="kpi-label">Опубликовано постов</div>
+            <div class="kpi-value" id="kpi-posts">{{ total_posts }}</div>
+            <div class="kpi-sub">Все аккаунты</div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-icon">💙</div>
+            <div class="kpi-label">Всего лайков</div>
+            <div class="kpi-value" id="kpi-likes">{{ total_likes }}</div>
+            <div class="kpi-sub">Вовлечённость Threads</div>
+        </div>
+        <div class="kpi-card cyan">
+            <div class="kpi-icon">📊</div>
+            <div class="kpi-label">Просмотры постов</div>
+            <div class="kpi-value" id="kpi-views">{{ total_views }}</div>
+            <div class="kpi-sub">Показы</div>
+        </div>
+        <div class="kpi-card pink">
+            <div class="kpi-icon">💬</div>
+            <div class="kpi-label">Ответы</div>
+            <div class="kpi-value" id="kpi-replies">{{ total_replies }}</div>
+            <div class="kpi-sub">Получено комментариев</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-icon">🔁</div>
+            <div class="kpi-label">Репосты</div>
+            <div class="kpi-value" id="kpi-reposts">{{ total_reposts }}</div>
+            <div class="kpi-sub">Поделились</div>
+        </div>
+    </div>
+
+    <!-- ── Charts row ─────────────────────────────────────── -->
+    <div class="charts-grid">
+
+        <!-- Main line chart -->
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-card-title">Активность — последние 30 дней</div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--cyan)"></div>
+                        Просмотры страниц
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--violet)"></div>
+                        Посты
+                    </div>
+                </div>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Doughnut -->
+        <div class="chart-card">
+            <div class="chart-card-header">
+                <div class="chart-card-title">Типы публикаций</div>
+            </div>
+            <div class="doughnut-wrap">
+                <canvas id="typeChart" style="max-height:200px;max-width:200px"></canvas>
+                <div class="doughnut-center">
+                    <div class="big" id="doughnut-total">{{ total_posts }}</div>
+                    <div class="small">всего</div>
+                </div>
+            </div>
+            <div class="type-legend" id="typeLegend">
+                {% for t in type_breakdown %}
+                <div class="type-legend-item">
+                    <div class="type-legend-label">
+                        <div class="type-legend-dot" id="dot-{{ loop.index }}"></div>
+                        {{ t.post_type | capitalize }}
+                    </div>
+                    <div class="type-legend-val">{{ t.n }}</div>
+                </div>
+                {% else %}
+                <div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:10px 0">Пока нет данных</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Bottom grid ────────────────────────────────────── -->
+    <div class="bottom-grid">
+
+        <!-- Top pages table -->
+        <div class="panel">
+            <div class="panel-title">
+                Топ страниц
+                <span class="panel-title-badge">30 ДНЕЙ</span>
+            </div>
+            {% if top_pages %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Страница</th>
+                        <th>Хиты</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page in top_pages %}
+                    <tr>
+                        <td><span class="path-cell">{{ page.path }}</span></td>
+                        <td><span class="hits-badge">{{ page.hits }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="icon">🔍</div>
+                <p>Данных о просмотрах пока нет.<br>Просмотры отслеживаются автоматически при каждом запросе.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Top accounts -->
+        <div class="panel">
+            <div class="panel-title">Топ аккаунтов по вовлечённости</div>
+            {% if top_accounts %}
+            <div class="acc-list">
+                {% set max_likes = namespace(val=1) %}
+                {% for acc in top_accounts %}
+                    {% if acc.likes > max_likes.val %}{% set max_likes.val = acc.likes %}{% endif %}
+                {% endfor %}
+                {% for acc in top_accounts %}
+                <div class="acc-item">
+                    <div class="acc-rank">#{{ loop.index }}</div>
+                    <div class="acc-bar-wrap">
+                        <div class="acc-name">{{ acc.name }}</div>
+                        <div class="acc-bar-bg">
+                            <div class="acc-bar-fill" style="width:{{ [((acc.likes / max_likes.val) * 100)|int, 4]|max }}%"></div>
+                        </div>
+                    </div>
+                    <div class="acc-stats">
+                        <div class="acc-posts">{{ acc.posts }} постов</div>
+                        <div class="acc-likes">♥ {{ acc.likes }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="icon">🤖</div>
+                <p>Данных по аккаунтам пока нет. Начните публиковать, чтобы увидеть статистику.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Recent publications ────────────────────────────── -->
+    <div class="panel" style="animation: fadeUp .5s .35s ease both;">
+        <div class="panel-title">
+            Последние публикации
+            <span class="panel-title-badge">ПОСЛЕДНИЕ 10</span>
+        </div>
+        {% if recent_pubs %}
+        <div class="pub-list">
+            {% for pub in recent_pubs %}
+            <div class="pub-item">
+                <div class="pub-item-head">
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <span class="pub-account">{{ pub.account_name or '—' }}</span>
+                        <span class="pub-type-badge type-{{ pub.post_type }}">{{ pub.post_type }}</span>
+                    </div>
+                    <span class="pub-time">{{ pub.published_at[:16] if pub.published_at else '' }}</span>
+                </div>
+                {% if pub.post_text %}
+                <div class="pub-text">{{ pub.post_text }}</div>
+                {% else %}
+                <div class="pub-text empty">[Текст недоступен]</div>
+                {% endif %}
+                <div class="pub-metrics">
+                    <div class="metric-chip">
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {{ pub.views or 0 }}
+                    </div>
+                    <div class="metric-chip">
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                        {{ pub.likes or 0 }}
+                    </div>
+                    <div class="metric-chip">
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                        {{ pub.replies_count or 0 }}
+                    </div>
+                    <div class="metric-chip">
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+                        {{ pub.reposts or 0 }}
+                    </div>
+                    {% if pub.threads_post_id %}
+                    <div class="metric-chip" style="margin-left:auto">
+                        <a href="https://www.threads.net/@{{ pub.account_name }}/post/{{ pub.threads_post_id }}"
+                           target="_blank"
+                           style="color:var(--cyan);text-decoration:none;font-size:.75rem">
+                            Открыть в Threads ↗
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>Публикаций пока нет.<br>Как только ферма начнёт постить, они появятся здесь.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div><!-- /wrapper -->
+
+<!-- ── Status bar ──────────────────────────────────────────── -->
+<div class="status-bar">
+    <div class="status-dot"></div>
+    <span id="statusText">Онлайн · обновление 60с</span>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<!-- ── Charts JS ───────────────────────────────────────────── -->
+<script>
+    /* ── Data injected by Jinja ────────────────────────────── */
+    const CHART_LABELS    = {{ chart_labels_json | safe }};
+    const PV_SERIES       = {{ pv_series_json    | safe }};
+    const POSTS_SERIES    = {{ posts_series_json | safe }};
+    const TYPE_DATA       = {{ type_breakdown_json | safe }};
+
+    /* ── Type colours ──────────────────────────────────────── */
+    const TYPE_COLORS = ['#00d4ff', '#7c3aed', '#f59e0b', '#10d98e', '#f472b6'];
+
+    /* ── Activity line chart ───────────────────────────────── */
+    const actCtx = document.getElementById('activityChart').getContext('2d');
+
+    const pvGrad = actCtx.createLinearGradient(0, 0, 0, 240);
+    pvGrad.addColorStop(0,   'rgba(0,212,255,.35)');
+    pvGrad.addColorStop(1,   'rgba(0,212,255,0)');
+
+    const postsGrad = actCtx.createLinearGradient(0, 0, 0, 240);
+    postsGrad.addColorStop(0, 'rgba(124,58,237,.35)');
+    postsGrad.addColorStop(1, 'rgba(124,58,237,0)');
+
+    const actChart = new Chart(actCtx, {
+        type: 'line',
+        data: {
+            labels: CHART_LABELS,
+            datasets: [
+                {
+                    label: 'Просмотры',
+                    data: PV_SERIES,
+                    borderColor: '#00d4ff',
+                    backgroundColor: pvGrad,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: .4,
+                    fill: true,
+                },
+                {
+                    label: 'Посты',
+                    data: POSTS_SERIES,
+                    borderColor: '#7c3aed',
+                    backgroundColor: postsGrad,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: .4,
+                    fill: true,
+                },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0d1120',
+                    borderColor: 'rgba(255,255,255,.1)',
+                    borderWidth: 1,
+                    titleColor: '#8b95a8',
+                    bodyColor: '#e8ecf4',
+                    padding: 10,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,.04)' },
+                    ticks: {
+                        color: '#4d5566',
+                        maxTicksLimit: 8,
+                        font: { size: 11 },
+                    },
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,.04)' },
+                    ticks: { color: '#4d5566', font: { size: 11 } },
+                    beginAtZero: true,
+                }
+            }
+        }
+    });
+
+    /* ── Doughnut chart ────────────────────────────────────── */
+    const typeCtx = document.getElementById('typeChart').getContext('2d');
+    const typeLabels = TYPE_DATA.map(t => t.label);
+    const typeVals   = TYPE_DATA.map(t => t.value);
+    const hasTypes   = typeVals.some(v => v > 0);
+
+    const typeChart = new Chart(typeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: typeLabels,
+            datasets: [{
+                data: hasTypes ? typeVals : [1],
+                backgroundColor: hasTypes ? TYPE_COLORS.slice(0, typeVals.length) : ['rgba(255,255,255,.06)'],
+                borderColor: '#080b14',
+                borderWidth: 3,
+                hoverBorderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: hasTypes ? {
+                    backgroundColor: '#0d1120',
+                    borderColor: 'rgba(255,255,255,.1)',
+                    borderWidth: 1,
+                    titleColor: '#8b95a8',
+                    bodyColor: '#e8ecf4',
+                } : { enabled: false }
+            }
+        }
+    });
+
+    /* Apply colours to legend dots */
+    TYPE_DATA.forEach((t, i) => {
+        const dot = document.getElementById(`dot-${i+1}`);
+        if (dot) dot.style.background = TYPE_COLORS[i] || '#4d5566';
+    });
+
+    /* ── Number formatter ──────────────────────────────────── */
+    function fmt(n) {
+        if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+        if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+        return String(n);
+    }
+
+    /* ── Обновить метрики trigger ─────────────────────────────── */
+    async function triggerRefresh() {
+        const btn = document.getElementById('refreshBtn');
+        btn.disabled = true;
+        btn.classList.add('spinning');
+
+        try {
+            const r = await fetch('/api/stats/refresh', { method: 'POST' });
+            if (r.ok) {
+                showToast('✅ Синхронизация запущена — данные обновятся через ~30с');
+                setTimeout(reloadStats, 5000);
+            } else {
+                showToast('❌ Ошибка синхронизации. Попробуйте снова.');
+            }
+        } catch {
+            showToast('❌ Ошибка сети');
+        } finally {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.classList.remove('spinning');
+            }, 2000);
+        }
+    }
+
+    /* ── Live reload of KPIs (no full page refresh) ─────────── */
+    async function reloadStats() {
+        try {
+            const r = await fetch('/api/stats/data');
+            if (!r.ok) return;
+            const d = await r.json();
+
+            // Update KPI counters
+            document.getElementById('kpi-pv').textContent     = fmt(d.total_pageviews);
+            document.getElementById('kpi-uv').textContent     = fmt(d.unique_visitors);
+            document.getElementById('kpi-posts').textContent  = fmt(d.total_posts);
+            document.getElementById('kpi-likes').textContent  = fmt(d.total_likes);
+            document.getElementById('kpi-views').textContent  = fmt(d.total_views);
+            document.getElementById('kpi-replies').textContent = fmt(d.total_replies);
+            document.getElementById('kpi-reposts').textContent = fmt(d.total_reposts);
+
+            // Update activity chart
+            actChart.data.labels            = d.chart_labels;
+            actChart.data.datasets[0].data  = d.pv_series;
+            actChart.data.datasets[1].data  = d.posts_series;
+            actChart.update('none');  // no animation on live update
+
+            document.getElementById('doughnut-total').textContent = fmt(d.total_posts);
+            document.getElementById('lastRefresh').textContent =
+                'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+
+        } catch (e) {
+            console.warn('[stats] reload error', e);
+        }
+    }
+
+    /* ── Toast helper ──────────────────────────────────────── */
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    /* ── Auto-refresh every 60 s ───────────────────────────── */
+    setInterval(reloadStats, 60_000);
+</script>
+
+</body>
+</html>

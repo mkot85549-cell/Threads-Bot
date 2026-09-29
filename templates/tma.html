@@ -1,0 +1,1656 @@
+"<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ThreadsAI · Mini</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           DESIGN TOKENS — exact copy from index.html
+        ═══════════════════════════════════════════════════════ */
+        :root {
+            --bg:          #080b14;
+            --bg2:         #0d1120;
+            --bg3:         #111827;
+            --surface:     rgba(255,255,255,.04);
+            --surface2:    rgba(255,255,255,.07);
+            --border:      rgba(255,255,255,.08);
+            --border2:     rgba(0,212,255,.2);
+            --cyan:        #00d4ff;
+            --cyan-dim:    rgba(0,212,255,.15);
+            --cyan-glow:   0 0 24px rgba(0,212,255,.35);
+            --violet:      #7c3aed;
+            --violet-dim:  rgba(124,58,237,.18);
+            --violet-glow: 0 0 24px rgba(124,58,237,.4);
+            --green:       #10d98e;
+            --green-dim:   rgba(16,217,142,.15);
+            --red:         #ff4d6a;
+            --red-dim:     rgba(255,77,106,.15);
+            --amber:       #f59e0b;
+            --txt:         #e8ecf4;
+            --txt2:        #8b95a8;
+            --txt3:        #4d5566;
+            --radius:      12px;
+            --radius-sm:   8px;
+            --font-display:'Syne', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           RESET & BASE — same as main site
+        ═══════════════════════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+            overscroll-behavior: none;
+        }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--txt);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 74px;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ANIMATED BACKGROUND NEBULA — same as main site
+        ═══════════════════════════════════════════════════════ */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 15% 10%,  rgba(124,58,237,.12)  0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 80%,  rgba(0,212,255,.10)   0%, transparent 55%),
+                radial-gradient(ellipse 50% 60% at 50% 50%,  rgba(16,217,142,.04)  0%, transparent 70%);
+            animation: nebula 18s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        @keyframes nebula {
+            0%   { opacity: 1; transform: scale(1)   rotate(0deg); }
+            50%  { opacity: .8; transform: scale(1.06) rotate(1deg); }
+            100% { opacity: 1; transform: scale(1)   rotate(0deg); }
+        }
+
+        /* Fine grid overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           LAYOUT
+        ═══════════════════════════════════════════════════════ */
+        .page-wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 14px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           LOADING
+        ═══════════════════════════════════════════════════════ */
+        #loading {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            gap: 16px;
+            transition: opacity 0.3s;
+        }
+        #loading.hidden { opacity: 0; pointer-events: none; }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            font-family: var(--font-display);
+            font-size: 13px;
+            color: var(--txt3);
+            letter-spacing: .5px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           TOAST — same glass style
+        ═══════════════════════════════════════════════════════ */
+        #toast {
+            position: fixed;
+            bottom: 86px;
+            left: 14px;
+            right: 14px;
+            z-index: 1000;
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            color: var(--cyan);
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform .3s cubic-bezier(.4,0,.2,1), opacity .3s;
+            box-shadow: var(--cyan-glow);
+            backdrop-filter: blur(10px);
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ═══════════════════════════════════════════════════════
+           BOTTOM NAV — glass blur
+        ═══════════════════════════════════════════════════════ */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            background: rgba(13,17,32,.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border);
+            padding: 4px 6px env(safe-area-inset-bottom, 6px);
+            gap: 2px;
+        }
+        .nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            background: none;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--txt3);
+            font-family: var(--font-body);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s;
+            padding: 8px 4px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .nav-btn.active { color: var(--cyan); }
+        .nav-btn:active { background: var(--surface); }
+        .nav-icon { font-size: 20px; height: 22px; display: grid; place-items: center; }
+
+        /* ═══════════════════════════════════════════════════════
+           SCREEN SYSTEM
+        ═══════════════════════════════════════════════════════ */
+        .screen { display: none; padding: 14px 0 20px; }
+        .screen.active { display: block; }
+
+        /* ═══════════════════════════════════════════════════════
+           GLASS CARD — same as main site
+        ═══════════════════════════════════════════════════════ */
+        .glass {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .glass-cyan {
+            border-color: var(--border2);
+            box-shadow: 0 0 0 1px rgba(0,212,255,.06), inset 0 1px 0 rgba(0,212,255,.08);
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           BUTTONS — same as main site
+        ═══════════════════════════════════════════════════════ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s;
+            text-decoration: none;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+            color: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background .18s;
+        }
+        .btn:hover::after { background: rgba(255,255,255,.06); }
+        .btn:active { transform: scale(.97); }
+
+        .btn-cyan {
+            background: linear-gradient(135deg, rgba(0,212,255,.2), rgba(0,212,255,.1));
+            color: var(--cyan);
+            border: 1px solid rgba(0,212,255,.3);
+        }
+        .btn-cyan:hover { box-shadow: var(--cyan-glow); border-color: var(--cyan); }
+
+        .btn-violet {
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            box-shadow: var(--violet-glow);
+        }
+        .btn-violet:hover { filter: brightness(1.12); }
+
+        .btn-green {
+            background: linear-gradient(135deg, rgba(16,217,142,.2), rgba(16,217,142,.1));
+            color: var(--green);
+            border: 1px solid rgba(16,217,142,.3);
+        }
+        .btn-green:hover { box-shadow: 0 0 20px rgba(16,217,142,.3); border-color: var(--green); }
+
+        .btn-red {
+            background: linear-gradient(135deg, rgba(255,77,106,.2), rgba(255,77,106,.1));
+            color: var(--red);
+            border: 1px solid rgba(255,77,106,.3);
+        }
+        .btn-red:hover { box-shadow: 0 0 20px rgba(255,77,106,.3); border-color: var(--red); }
+
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--txt2);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { color: var(--txt); border-color: rgba(255,255,255,.16); }
+
+        .btn-sm { padding: 7px 14px; font-size: 12px; }
+        .btn-full { width: 100%; }
+
+        /* ═══════════════════════════════════════════════════════
+           TOPBAR — mobile version of main site topbar
+        ═══════════════════════════════════════════════════════ */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0 18px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 18px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--violet), var(--cyan));
+            display: grid;
+            place-items: center;
+            font-size: 16px;
+            box-shadow: var(--violet-glow);
+        }
+        .logo-text {
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -.3px;
+        }
+        .logo-text span { color: var(--cyan); }
+        .greeting {
+            font-size: 12px;
+            color: var(--txt2);
+        }
+        .greeting strong { color: var(--cyan); }
+
+        /* ═══════════════════════════════════════════════════════
+           QUOTA BAR — same as main site
+        ═══════════════════════════════════════════════════════ */
+        .quota-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+        }
+        .quota-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--txt3);
+            margin-bottom: 2px;
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+        .quota-value {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--cyan);
+        }
+        .quota-denom {
+            font-size: 13px;
+            color: var(--txt3);
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           SECTION HEADINGS — same as main site
+        ═══════════════════════════════════════════════════════ */
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            margin-top: 6px;
+        }
+        .section-heading h2 {
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--txt);
+        }
+        .section-heading .tag {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: var(--cyan-dim);
+            color: var(--cyan);
+            border: 1px solid rgba(0,212,255,.2);
+            letter-spacing: .4px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           WORKERS GRID — same as main site grid
+        ═══════════════════════════════════════════════════════ */
+        .workers-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .worker-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            gap: 10px;
+        }
+        .worker-info { flex: 1; min-width: 0; }
+        .worker-name {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 3px;
+        }
+        .worker-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-on  { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-dot 2s infinite; }
+        .dot-off { background: var(--red); }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .4; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ACCOUNT CARDS — glass style like main site table rows
+        ═══════════════════════════════════════════════════════ */
+        .acc-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            transition: border-color .18s;
+        }
+        .acc-card:active { border-color: var(--border2); }
+        .acc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .acc-name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .acc-name {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--txt);
+        }
+        .acc-id-badge {
+            font-size: 10px;
+            color: var(--txt3);
+            font-family: 'Courier New', monospace;
+            background: rgba(255,255,255,.07);
+            border: 1px solid var(--border);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+        .acc-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Badges — same as main site */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(255,255,255,.07);
+            color: var(--txt2);
+            border: 1px solid var(--border);
+            font-family: var(--font-body);
+        }
+        .badge-mode-ai     { background: var(--violet-dim); color: #c4b5fd; border-color: rgba(124,58,237,.3); }
+        .badge-mode-prompt { background: var(--cyan-dim);   color: var(--cyan); border-color: rgba(0,212,255,.3); }
+
+        /* Timing badges */
+        .timing-stack { display: flex; flex-direction: column; gap: 3px; }
+        .tbadge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tbadge-post     { background: rgba(0,212,255,.1);  color: var(--cyan); }
+        .tbadge-outreach { background: rgba(16,217,142,.1); color: var(--green); }
+
+        .acc-actions { display: flex; gap: 8px; }
+
+        /* ═══════════════════════════════════════════════════════
+           TOGGLE SWITCH — same as main site
+        ═══════════════════════════════════════════════════════ */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255,255,255,.1);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            transition: .3s;
+        }
+        .slider::before {
+            content: '';
+            position: absolute;
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background: var(--txt3);
+            border-radius: 50%;
+            transition: .3s;
+        }
+        input:checked + .slider { background: rgba(16,217,142,.25); border-color: rgba(16,217,142,.4); }
+        input:checked + .slider::before { transform: translateX(18px); background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+        /* ═══════════════════════════════════════════════════════
+           FORM ELEMENTS — same as main site edit.html
+        ═══════════════════════════════════════════════════════ */
+        .form-row { margin-bottom: 14px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-row label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px;
+        }
+        .form-row input,
+        .form-row textarea,
+        .form-row select {
+            width: 100%;
+            padding: 10px 13px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--txt);
+            font-family: var(--font-body);
+            font-size: 14px;
+            outline: none;
+            transition: border-color .18s, box-shadow .18s, background .18s;
+            -webkit-appearance: none;
+        }
+        .form-row input::placeholder,
+        .form-row textarea::placeholder { color: var(--txt3); }
+        .form-row input:focus,
+        .form-row textarea:focus,
+        .form-row select:focus {
+            border-color: rgba(0,212,255,.5);
+            box-shadow: 0 0 0 3px rgba(0,212,255,.08);
+            background: rgba(0,212,255,.04);
+        }
+        .form-row select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%234d5566' viewBox='0 0 16 16'%3E%3Cpath d='M8 10L4 6h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+        .form-row select option { background: var(--bg3); color: var(--txt); }
+        .form-row textarea { resize: vertical; min-height: 64px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .hint {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        /* ── Section divider ────────────────────────────────── */
+        .section-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 16px 0;
+        }
+
+        /* ── Generation panel (amber) — same as main site ────── */
+        .gen-panel {
+            border: 1px solid rgba(245,158,11,.2);
+            background: rgba(245,158,11,.04);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .gen-panel-title {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--amber);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        /* ── Comment panel (cyan) — same as main site ────────── */
+        .comment-panel {
+            border: 1px solid rgba(0,212,255,.15);
+            background: rgba(0,212,255,.04);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .comment-panel-title {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--cyan);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        /* ── Additional glass card accent ───────────────────── */
+        .glass-accent-left {
+            border-left: 3px solid rgba(0,212,255,.3);
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+
+        /* ── Mode pills — same as main site ─────────────────── */
+        .mode-pills { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .mode-pill {
+            flex: 1;
+            min-width: 140px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all .18s;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .mode-pill .pill-label { font-size: 12px; font-weight: 600; color: var(--txt); }
+        .mode-pill .pill-desc  { font-size: 10px; color: var(--txt3); margin-top: 2px; }
+        .mode-pill.selected {
+            border-color: rgba(0,212,255,.4);
+            background: var(--cyan-dim);
+            box-shadow: var(--cyan-glow);
+        }
+
+        .mode-block {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            background: rgba(255,255,255,.03);
+        }
+
+        /* ── Language switcher — same as main site ──────────── */
+        .lang-switcher-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding: 10px 14px;
+            background: rgba(124,58,237,.08);
+            border: 1px solid rgba(124,58,237,.2);
+            border-radius: var(--radius-sm);
+        }
+        .lang-switcher-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .lang-pills {
+            display: flex;
+            gap: 3px;
+            background: rgba(0,0,0,.3);
+            border-radius: 7px;
+            padding: 3px;
+        }
+        .lang-pill {
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .18s;
+            border: none;
+            background: transparent;
+            color: var(--txt3);
+            letter-spacing: .3px;
+        }
+        .lang-pill.active {
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(124,58,237,.4);
+        }
+
+        /* ── Skills grid — same as main site ────────────────── */
+        .skills-wrap { margin-bottom: 14px; }
+        .skills-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .skills-label span { color: var(--cyan); }
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 6px;
+        }
+        .skill-card { position: relative; cursor: pointer; }
+        .skill-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+        .skill-card-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3px;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            transition: all .18s;
+            cursor: pointer;
+        }
+        .skill-card-inner.selected {
+            border-color: rgba(0,212,255,.5);
+            background: var(--cyan-dim);
+            box-shadow: var(--cyan-glow);
+        }
+        .skill-card-icon { font-size: 16px; }
+        .skill-card-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--txt);
+            line-height: 1.2;
+        }
+        .skill-card-desc {
+            font-size: 9px;
+            color: var(--txt3);
+            line-height: 1.3;
+        }
+
+        /* ── Temperature slider — same as main site ─────────── */
+        .temp-bar {
+            padding: 12px 14px;
+            background: rgba(0,212,255,.05);
+            border: 1px solid rgba(0,212,255,.15);
+            border-radius: var(--radius-sm);
+            margin-bottom: 14px;
+        }
+        .temp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .temp-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .temp-badge { display: flex; align-items: center; gap: 8px; }
+        .temp-value {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--cyan);
+            min-width: 32px;
+            text-align: right;
+        }
+        .temp-desc {
+            font-size: 11px;
+            color: var(--txt3);
+            text-align: right;
+        }
+        input[type="range"].temp-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: linear-gradient(
+                to right,
+                var(--cyan) 0%,
+                var(--cyan) var(--pct, 65%),
+                rgba(255,255,255,.1) var(--pct, 65%),
+                rgba(255,255,255,.1) 100%
+            );
+            outline: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            margin: 8px 0;
+        }
+        input[type="range"].temp-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 10px rgba(0,212,255,.6);
+            cursor: pointer;
+        }
+        .temp-axis {
+            display: flex;
+            justify-content: space-between;
+        }
+        .temp-axis span { font-size: 10px; color: var(--txt3); }
+
+        /* ── Auth / Expired overlay ──────────────────────────── */
+        .auth-screen {
+            max-width: 380px;
+            margin: 80px auto;
+            text-align: center;
+            padding: 40px 28px;
+        }
+        .auth-screen .auth-icon {
+            font-size: 44px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 0 20px rgba(0,212,255,.5));
+        }
+        .auth-screen h2 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .auth-screen p {
+            color: var(--txt2);
+            font-size: 13px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* ── Empty state ────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            color: var(--txt3);
+            padding: 28px;
+            font-size: 13px;
+        }
+        .empty-state .empty-icon { font-size: 28px; margin-bottom: 6px; opacity: .4; }
+
+        /* ── Back button ────────────────────────────────────── */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--txt2);
+            font-size: 12px;
+            font-family: var(--font-body);
+            font-weight: 500;
+            text-decoration: none;
+            transition: all .18s;
+            cursor: pointer;
+        }
+        .back-btn:hover { color: var(--txt); border-color: rgba(255,255,255,.16); }
+
+        /* ── Page header ────────────────────────────────────── */
+        .page-hdr {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .page-title {
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .page-title span { color: var(--cyan); }
+
+        /* ── Save bar ───────────────────────────────────────── */
+        .save-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .btn-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            font-family: var(--font-body);
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            box-shadow: var(--violet-glow);
+            transition: filter .18s, transform .1s;
+            flex: 1;
+        }
+        .btn-save:hover  { filter: brightness(1.12); }
+        .btn-save:active { transform: scale(.98); }
+
+        /* ── Footer ─────────────────────────────────────────── */
+        .footer {
+            text-align: center;
+            padding: 16px;
+            color: var(--txt3);
+            font-size: 10px;
+            font-family: var(--font-body);
+        }
+    </style>
+</head>
+<body>
+
+<input type="hidden" id="bot-username" value="{{ tg_bot_username }}">
+
+<!-- Loading -->
+<div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">ЗАГРУЗКА…</div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<div class="page-wrap">
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 0: Dashboard
+═══════════════════════════════════════════════ -->
+<div id="screen-dashboard" class="screen active">
+
+    <div id="sub-expired" class="auth-screen glass" style="display:none;">
+        <div class="auth-icon">💸</div>
+        <h2 style="color:var(--red)">Подписка истекла</h2>
+        <p>Твой тарифный план исчерпан. Работа всех аккаунтов приостановлена.</p>
+        <button class="btn btn-green btn-full" onclick="openBot()">💳 Продлить подписку</button>
+    </div>
+
+    <div id="dashboard-content">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="logo">
+                <div class="logo-icon">🧵</div>
+                <div class="logo-text">Threads<span>AI</span></div>
+            </div>
+            <span class="greeting">👋 <strong id="user-name">...</strong></span>
+        </div>
+
+        <!-- Quota -->
+        <div class="glass quota-bar">
+            <div>
+                <div class="quota-label">Аккаунты</div>
+                <div style="display:flex;align-items:baseline;gap:4px;">
+                    <span class="quota-value" id="acc-count">0</span>
+                    <span class="quota-denom">/ <span id="acc-max">0</span></span>
+                </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="openBot()">⬆ Увеличить лимит</button>
+        </div>
+
+        <!-- Workers -->
+        <div class="workers-grid">
+            <div class="glass worker-card">
+                <div class="worker-info">
+                    <div class="worker-name">📤 Постинг</div>
+                    <div class="worker-status">
+                        <span class="dot" id="dot-farm"></span>
+                        <span id="status-farm" style="color:var(--txt3)">—</span>
+                    </div>
+                </div>
+                <button class="btn btn-sm" id="btn-farm" onclick="toggleFarm()">Стоп</button>
+            </div>
+            <div class="glass worker-card">
+                <div class="worker-info">
+                    <div class="worker-name">📡 Нейрокомментинг</div>
+                    <div class="worker-status">
+                        <span class="dot" id="dot-listener"></span>
+                        <span id="status-listener" style="color:var(--txt3)">—</span>
+                    </div>
+                </div>
+                <button class="btn btn-sm" id="btn-listener" onclick="toggleListener()">Стоп</button>
+            </div>
+        </div>
+
+        <!-- Accounts -->
+        <div class="section-heading">
+            <h2>Аккаунты</h2>
+            <span class="tag" id="acc-count-tag">0</span>
+        </div>
+        <div id="accounts-container">
+            <div class="empty-state">
+                <div class="empty-icon">🕳</div>
+                Нет подключённых аккаунтов
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ КОТУЛАЙ МИХАЙЛО ВІТАЛІЙОВИЧ</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 1: Edit Account
+═══════════════════════════════════════════════ -->
+<div id="screen-edit" class="screen">
+    <div class="page-hdr">
+        <button class="back-btn" onclick="switchScreen('dashboard')">← Назад</button>
+        <h1 class="page-title">Настройки: <span id="edit-title-name"></span></h1>
+    </div>
+
+    <form id="edit-form" onsubmit="saveAccount(event)">
+        <input type="hidden" id="edit-id">
+
+        <!-- Credentials -->
+        <div class="glass glass-accent-left">
+            <div class="gen-panel-title" style="margin-bottom:12px;">🔑 Данные аккаунта</div>
+            <div class="form-row">
+                <label>Название</label>
+                <input type="text" id="edit-name" placeholder="@username" required>
+            </div>
+            <div class="form-row">
+                <label>Прокси (опционально)</label>
+                <input type="text" id="edit-proxy" placeholder="http://user:pass@ip:port">
+            </div>
+        </div>
+
+        <!-- Generation Settings -->
+        <div class="gen-panel">
+            <div class="gen-panel-title">
+                ⚙ Настройки генерации · <span style="color:var(--cyan)">Claude AI</span>
+            </div>
+
+            <!-- Mode pills -->
+            <div class="mode-pills" id="mode-pills">
+                <div class="mode-pill selected" data-mode="prompts" onclick="setMode('prompts')">
+                    <div>
+                        <div class="pill-label">📝 5 промптов</div>
+                        <div class="pill-desc">Claude выбирает рандомный промпт</div>
+                    </div>
+                </div>
+                <div class="mode-pill" data-mode="ai_adapt" onclick="setMode('ai_adapt')">
+                    <div>
+                        <div class="pill-label">🧠 ИИ-Адаптация</div>
+                        <div class="pill-desc">Парсинг вирусных постов</div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="edit-post-mode" value="prompts">
+
+            <!-- Prompts block -->
+            <div id="block-prompts" class="mode-block">
+                <div style="font-size:10px; color:var(--txt3); margin-bottom:8px;">Заполните до 5 промптов:</div>
+                <div class="form-row"><textarea id="edit-p1" rows="2" placeholder="Промпт 1 — Экспертный пост о рынке"></textarea></div>
+                <div class="form-row"><textarea id="edit-p2" rows="2" placeholder="Промпт 2 — Личная история / факап"></textarea></div>
+                <div class="form-row"><textarea id="edit-p3" rows="2" placeholder="Промпт 3 — Жёсткий призыв / продажа"></textarea></div>
+                <div class="form-row"><textarea id="edit-p4" rows="2" placeholder="Промпт 4 — Ирония над новичками"></textarea></div>
+                <div class="form-row"><textarea id="edit-p5" rows="2" placeholder="Промпт 5 — Мотивация"></textarea></div>
+            </div>
+
+            <!-- AI adapt block -->
+            <div id="block-ai" class="mode-block" style="display:none;">
+                <div class="form-row">
+                    <label>🔍 Тематики-доноры</label>
+                    <input type="text" id="edit-source" placeholder="Напр.: поиск работы, фриланс, выгорание">
+                </div>
+                <div class="form-row">
+                    <label>🎯 Твоя ниша</label>
+                    <input type="text" id="edit-target" placeholder="Напр.: Крипта и P2P арбитраж">
+                </div>
+                <div class="form-row">
+                    <label>⚙ Мини-промпт</label>
+                    <textarea id="edit-mini" rows="2" placeholder="Пиши токсично, используй сленг"></textarea>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- Language switcher -->
+            <div class="lang-switcher-wrap">
+                <span class="lang-switcher-label">🌐 Язык поста</span>
+                <div class="lang-pills" id="lang-pills">
+                    <button type="button" class="lang-pill active" data-lang="ru" onclick="setLang('ru')">🇷🇺 RU</button>
+                    <button type="button" class="lang-pill" data-lang="en" onclick="setLang('en')">🇺🇸 EN</button>
+                    <button type="button" class="lang-pill" data-lang="uk" onclick="setLang('uk')">🇺🇦 UA</button>
+                </div>
+            </div>
+            <input type="hidden" id="edit-lang" value="ru">
+
+            <!-- Skills -->
+            <div class="skills-wrap">
+                <div class="skills-label">✦ Скилл (стиль письма Claude) <span>выберите персону</span></div>
+                <div class="skills-grid" id="skills-grid">
+                    <div class="skill-card-inner selected" data-skill="" onclick="setSkill('')">
+                        <div class="skill-card-icon">🤖</div>
+                        <div class="skill-card-name">Без стиля</div>
+                        <div class="skill-card-desc">Нейтральный</div>
+                    </div>
+                    <div class="skill-card-inner" data-skill="crypto_bro" onclick="setSkill('crypto_bro')">
+                        <div class="skill-card-icon">🤑</div>
+                        <div class="skill-card-name">Crypto Bro</div>
+                        <div class="skill-card-desc">Агрессивный</div>
+                    </div>
+                    <div class="skill-card-inner" data-skill="analyst" onclick="setSkill('analyst')">
+                        <div class="skill-card-icon">📊</div>
+                        <div class="skill-card-name">Analyst</div>
+                        <div class="skill-card-desc">Сухой эксперт</div>
+                    </div>
+                    <div class="skill-card-inner" data-skill="provocateur" onclick="setSkill('provocateur')">
+                        <div class="skill-card-icon">🔥</div>
+                        <div class="skill-card-name">Provocateur</div>
+                        <div class="skill-card-desc">Споры, вирус</div>
+                    </div>
+                    <div class="skill-card-inner" data-skill="storyteller" onclick="setSkill('storyteller')">
+                        <div class="skill-card-icon">📖</div>
+                        <div class="skill-card-name">Storyteller</div>
+                        <div class="skill-card-desc">Истории</div>
+                    </div>
+                    <div class="skill-card-inner" data-skill="hustler" onclick="setSkill('hustler')">
+                        <div class="skill-card-icon">💼</div>
+                        <div class="skill-card-name">Hustler</div>
+                        <div class="skill-card-desc">Продажи, CTA</div>
+                    </div>
+                    <div class="skill-card-inner" data-skill="philosopher" onclick="setSkill('philosopher')">
+                        <div class="skill-card-icon">🧘</div>
+                        <div class="skill-card-name">Philosopher</div>
+                        <div class="skill-card-desc">Глубина</div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="edit-skill" value="">
+        </div>
+
+        <!-- Temperature -->
+        <div class="glass glass-accent-left">
+            <div class="temp-bar" style="border:none; background:transparent; padding:0; margin:0;">
+                <div class="temp-header">
+                    <span class="temp-label">🌡 Temperature</span>
+                    <div class="temp-badge">
+                        <span class="temp-value" id="temp-val-display">0.7</span>
+                        <span class="temp-desc" id="temp-label-display">Рекомендуется ✦</span>
+                    </div>
+                </div>
+                <input type="range" class="temp-slider" id="edit-temp"
+                       min="0.1" max="1.0" step="0.1" value="0.7"
+                       oninput="updateTemp(this.value)">
+                <div class="temp-axis">
+                    <span>0.1 — Похожие</span>
+                    <span>0.5 — Сбалансировано</span>
+                    <span>1.0 — Абсолютно разные</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timing -->
+        <div class="glass glass-accent-left" style="border-left-color:rgba(6,182,212,.3);">
+            <div class="gen-panel-title" style="margin-bottom:12px; color:var(--cyan);">⏱ Тайминги автопостинга</div>
+            <div class="grid-2">
+                <div class="form-row">
+                    <label>Мин. пауза</label>
+                    <input type="number" id="edit-pub-min" min="1" max="1440" value="15">
+                </div>
+                <div class="form-row">
+                    <label>Макс. пауза</label>
+                    <input type="number" id="edit-pub-max" min="1" max="1440" value="45">
+                </div>
+            </div>
+            <p class="hint">Рекомендуется: 15–45 мин (активный) · 60–180 мин (безопасный).</p>
+        </div>
+
+        <!-- Outreach -->
+        <div class="glass glass-accent-left" style="border-left-color:rgba(16,217,142,.3);">
+            <div class="gen-panel-title" style="margin-bottom:12px; color:var(--green);">📡 Холодный нейрокомментинг</div>
+            <div class="form-row">
+                <label>Ключевые слова для поиска</label>
+                <input type="text" id="edit-out-kw" placeholder="крипта, удаленка, инвестиции">
+            </div>
+            <div class="grid-2">
+                <div class="form-row">
+                    <label>Мин. задержка</label>
+                    <input type="number" id="edit-out-min" min="1" max="1440" value="10">
+                </div>
+                <div class="form-row">
+                    <label>Макс. задержка</label>
+                    <input type="number" id="edit-out-max" min="1" max="1440" value="30">
+                </div>
+            </div>
+        </div>
+
+        <!-- Comment bot -->
+        <div class="comment-panel">
+            <div class="comment-panel-title">🧠 Нейрокомментинг — входящие сигналы</div>
+            <div class="form-row">
+                <label>Промпт для Claude</label>
+                <textarea id="edit-cust-prompt" rows="3" placeholder="Ты успешный инвестор. Отвечай кратко, с иронией."></textarea>
+            </div>
+            <div class="form-row">
+                <label>CTA — финальная строка</label>
+                <input type="text" id="edit-cust-reply" placeholder="Гайд уже в шапке профиля! 🚀">
+            </div>
+        </div>
+
+        <!-- Save / Delete -->
+        <div class="save-bar">
+            <button type="submit" class="btn-save">✦ Сохранить</button>
+            <button type="button" class="btn btn-red btn-sm" onclick="deleteAccountFromEdit()">🗑</button>
+        </div>
+    </form>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 2: About
+═══════════════════════════════════════════════ -->
+<div id="screen-about" class="screen">
+    <div class="topbar">
+        <div class="logo">
+            <div class="logo-icon">🧵</div>
+            <div class="logo-text">Threads<span>AI</span></div>
+        </div>
+    </div>
+
+    <div class="glass" style="padding:28px 20px; text-align:center;">
+        <div style="font-size:44px; margin-bottom:12px; filter:drop-shadow(0 0 20px rgba(0,212,255,.5));">🧵</div>
+        <div style="font-family:var(--font-display); font-size:20px; font-weight:800; margin-bottom:6px;">
+            Threads<span style="color:var(--cyan)">AI</span>
+        </div>
+        <div style="color:var(--txt2); font-size:13px; line-height:1.6; margin-bottom:20px;">
+            Автоматический постинг, нейрокомментинг и аналитика в Threads с помощью Claude AI.
+        </div>
+        <button class="btn btn-violet btn-full" style="margin-bottom:8px;" onclick="openGuide()">📖 Инструкция по подключению</button>
+        <button class="btn btn-cyan btn-full" onclick="openBot()">💬 Открыть Telegram-бота</button>
+    </div>
+
+    <div class="footer">ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ КОТУЛАЙ МИХАЙЛО ВІТАЛІЙОВИЧ</div>
+</div>
+
+</div><!-- /page-wrap -->
+
+<!-- ══════════════════════════════════════════════════
+     BOTTOM NAV
+══════════════════════════════════════════════════ -->
+<div class="bottom-nav" id="bottom-nav">
+    <button class="nav-btn active" data-screen="dashboard">
+        <div class="nav-icon">🏠</div>
+        Главная
+    </button>
+    <button class="nav-btn" data-screen="edit">
+        <div class="nav-icon">✏️</div>
+        Аккаунты
+    </button>
+    <button class="nav-btn" data-screen="about">
+        <div class="nav-icon">ℹ️</div>
+        О боте
+    </button>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════ -->
+<script>
+// ── Init Telegram WebApp ──────────────────────────────────────────
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+tg.disableVerticalSwipes();
+try { tg.setHeaderColor('#080b14'); } catch(e) {}
+
+const INIT_DATA = tg.initData;
+const API = '/tma/api';
+
+let dashboardData = null;
+let currentEditingId = null;
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._timeout);
+    el._timeout = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── API helpers ───────────────────────────────────────────────────
+async function apiGet(path) {
+    const r = await fetch(API + path, {
+        headers: { 'X-TMA-Init-Data': INIT_DATA }
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+async function apiPost(path, body) {
+    const r = await fetch(API + path, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-TMA-Init-Data': INIT_DATA,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) throw new Error(await r.text() || 'Request failed');
+    if (r.status === 204) return {};
+    return r.json();
+}
+
+// ── Auth ──────────────────────────────────────────────────────────
+async function auth() {
+    try { await apiPost('/auth'); } catch(e) { console.warn('Auth:', e); }
+}
+
+// ── Load dashboard ────────────────────────────────────────────────
+async function loadDashboard() {
+    try {
+        const d = await apiGet('/dashboard');
+        dashboardData = d;
+        renderDashboard(d);
+    } catch(e) {
+        toast('Ошибка загрузки данных');
+        console.error(e);
+    }
+}
+
+function renderDashboard(d) {
+    const u = tg.initDataUnsafe?.user;
+    if (u) document.getElementById('user-name').textContent = u.first_name || '';
+
+    if (d.sub_expired) {
+        document.getElementById('sub-expired').style.display = 'block';
+        document.getElementById('dashboard-content').style.display = 'none';
+        return;
+    }
+    document.getElementById('sub-expired').style.display = 'none';
+    document.getElementById('dashboard-content').style.display = 'block';
+
+    document.getElementById('acc-count').textContent = d.current_count;
+    document.getElementById('acc-max').textContent = d.max_accounts;
+    document.getElementById('acc-count-tag').textContent = d.current_count + ' активно';
+
+    renderWorker('farm', d.farm_active);
+    renderWorker('listener', d.listener_active);
+
+    const c = document.getElementById('accounts-container');
+    if (!d.accounts || d.accounts.length === 0) {
+        c.innerHTML = '<div class="empty-state"><div class="empty-icon">🕳</div>Нет подключённых аккаунтов.<br>Добавьте через веб-панель.</div>';
+        return;
+    }
+
+    c.innerHTML = d.accounts.map(a => `
+        <div class="acc-card">
+            <div class="acc-header">
+                <div class="acc-name-row">
+                    <span class="acc-name">${esc(a.name)}</span>
+                    <span class="acc-id-badge">#${a.id}</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" ${a.is_active ? 'checked' : ''}
+                           onchange="toggleAccount(${a.id}, this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="acc-meta">
+                ${a.post_mode === 'ai_adapt'
+                    ? '<span class="badge badge-mode-ai">ИИ-Адаптация</span>'
+                    : '<span class="badge badge-mode-prompt">5 Промптов</span>'}
+                <span class="tbadge tbadge-post">✍ ${a.pub_delay_min}–${a.pub_delay_max} мин</span>
+                <span class="tbadge tbadge-outreach">💬 ${a.outreach_delay_min}–${a.outreach_delay_max} мин</span>
+            </div>
+            <div class="acc-actions">
+                <button class="btn btn-cyan btn-sm btn-full" onclick="openEdit(${a.id})">✏️ Редактировать</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderWorker(name, active) {
+    const dot    = document.getElementById('dot-' + name);
+    const status = document.getElementById('status-' + name);
+    const btn    = document.getElementById('btn-' + name);
+
+    if (active) {
+        dot.className = 'dot dot-on';
+        status.textContent = name === 'farm' ? 'Работает' : 'Сканирует';
+        status.style.color = 'var(--green)';
+        btn.className = 'btn btn-red btn-sm';
+        btn.textContent = 'Стоп';
+    } else {
+        dot.className = 'dot dot-off';
+        status.textContent = 'Остановлен';
+        status.style.color = 'var(--red)';
+        btn.className = 'btn btn-green btn-sm';
+        btn.textContent = 'Запуск';
+    }
+}
+
+function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Worker toggles ─────────────────────────────────────────────────
+async function toggleFarm() {
+    try {
+        const r = await apiPost('/toggle_farm');
+        dashboardData.farm_active = r.farm_active;
+        renderDashboard(dashboardData);
+        toast(r.farm_active ? 'Постинг запущен' : 'Постинг остановлен');
+    } catch(e) { toast('Ошибка'); }
+}
+
+async function toggleListener() {
+    try {
+        const r = await apiPost('/toggle_listener');
+        dashboardData.listener_active = r.listener_active;
+        renderDashboard(dashboardData);
+        toast(r.listener_active ? 'Нейрокомментинг запущен' : 'Нейрокомментинг остановлен');
+    } catch(e) { toast('Ошибка'); }
+}
+
+async function toggleAccount(id, cb) {
+    try {
+        const r = await apiPost(`/toggle_account/${id}`);
+        const a = dashboardData.accounts.find(x => x.id === id);
+        if (a) a.is_active = r.is_active;
+    } catch(e) {
+        cb.checked = !cb.checked;
+        toast('Ошибка переключения');
+    }
+}
+
+// ── Edit account ───────────────────────────────────────────────────
+function openEdit(id) {
+    const a = dashboardData.accounts.find(x => x.id === id);
+    if (!a) return toast('Аккаунт не найден');
+
+    document.getElementById('edit-id').value = a.id;
+    document.getElementById('edit-name').value = a.name;
+    document.getElementById('edit-proxy').value = a.proxy || '';
+    document.getElementById('edit-post-mode').value = a.post_mode;
+    document.getElementById('edit-lang').value = a.post_language || 'ru';
+    document.getElementById('edit-skill').value = a.ai_skill || '';
+    document.getElementById('edit-temp').value = a.ai_temperature;
+    document.getElementById('edit-pub-min').value = a.pub_delay_min;
+    document.getElementById('edit-pub-max').value = a.pub_delay_max;
+    document.getElementById('edit-out-kw').value = a.outreach_keywords || '';
+    document.getElementById('edit-out-min').value = a.outreach_delay_min;
+    document.getElementById('edit-out-max').value = a.outreach_delay_max;
+    document.getElementById('edit-cust-prompt').value = a.custom_prompt || '';
+    document.getElementById('edit-cust-reply').value = a.custom_reply || '';
+    document.getElementById('edit-p1').value = a.prompt_1 || '';
+    document.getElementById('edit-p2').value = a.prompt_2 || '';
+    document.getElementById('edit-p3').value = a.prompt_3 || '';
+    document.getElementById('edit-p4').value = a.prompt_4 || '';
+    document.getElementById('edit-p5').value = a.prompt_5 || '';
+    document.getElementById('edit-source').value = a.source_themes || '';
+    document.getElementById('edit-target').value = a.target_theme || '';
+    document.getElementById('edit-mini').value = a.mini_prompt || '';
+    document.getElementById('edit-title-name').textContent = a.name;
+
+    setMode(a.post_mode);
+    setLang(a.post_language || 'ru');
+    setSkill(a.ai_skill || '');
+    updateTemp(a.ai_temperature);
+
+    currentEditingId = id;
+    switchScreen('edit');
+}
+
+async function saveAccount(event) {
+    event.preventDefault();
+    const id = parseInt(document.getElementById('edit-id').value);
+    if (!id) return;
+
+    const pubMin = parseInt(document.getElementById('edit-pub-min').value);
+    const pubMax = parseInt(document.getElementById('edit-pub-max').value);
+    const outMin = parseInt(document.getElementById('edit-out-min').value);
+    const outMax = parseInt(document.getElementById('edit-out-max').value);
+
+    if (pubMin >= pubMax) return toast('Мин. пауза постинга должна быть меньше макс.');
+    if (outMin >= outMax) return toast('Мин. задержка outreach должна быть меньше макс.');
+
+    const body = {
+        name: document.getElementById('edit-name').value,
+        proxy: document.getElementById('edit-proxy').value || null,
+        post_mode: document.getElementById('edit-post-mode').value,
+        post_language: document.getElementById('edit-lang').value,
+        ai_skill: document.getElementById('edit-skill').value || null,
+        ai_temperature: parseFloat(document.getElementById('edit-temp').value),
+        pub_delay_min: pubMin,
+        pub_delay_max: pubMax,
+        outreach_keywords: document.getElementById('edit-out-kw').value || null,
+        outreach_delay_min: outMin,
+        outreach_delay_max: outMax,
+        custom_prompt: document.getElementById('edit-cust-prompt').value || null,
+        custom_reply: document.getElementById('edit-cust-reply').value || null,
+        prompt_1: document.getElementById('edit-p1').value || null,
+        prompt_2: document.getElementById('edit-p2').value || null,
+        prompt_3: document.getElementById('edit-p3').value || null,
+        prompt_4: document.getElementById('edit-p4').value || null,
+        prompt_5: document.getElementById('edit-p5').value || null,
+        source_themes: document.getElementById('edit-source').value || null,
+        target_theme: document.getElementById('edit-target').value || null,
+        mini_prompt: document.getElementById('edit-mini').value || null,
+    };
+
+    try {
+        await apiPost(`/update_account/${id}`, body);
+        toast('✅ Сохранено!');
+        const idx = dashboardData.accounts.findIndex(x => x.id === id);
+        if (idx >= 0) Object.assign(dashboardData.accounts[idx], body);
+        renderDashboard(dashboardData);
+        switchScreen('dashboard');
+    } catch(e) {
+        toast('❌ Ошибка сохранения');
+    }
+}
+
+async function deleteAccountFromEdit() {
+    const id = parseInt(document.getElementById('edit-id').value);
+    if (!id) return;
+    if (!confirm('Удалить этот аккаунт?')) return;
+    try {
+        await apiPost(`/delete_account/${id}`);
+        toast('🗑 Аккаунт удалён');
+        dashboardData.accounts = dashboardData.accounts.filter(x => x.id !== id);
+        dashboardData.current_count = dashboardData.accounts.length;
+        renderDashboard(dashboardData);
+        switchScreen('dashboard');
+    } catch(e) { toast('❌ Ошибка удаления'); }
+}
+
+// ── Edit helpers ───────────────────────────────────────────────────
+function setMode(m) {
+    document.getElementById('edit-post-mode').value = m;
+    document.querySelectorAll('#mode-pills .mode-pill').forEach(el => {
+        el.classList.toggle('selected', el.dataset.mode === m);
+    });
+    document.getElementById('block-prompts').style.display = m === 'prompts' ? 'block' : 'none';
+    document.getElementById('block-ai').style.display = m === 'ai_adapt' ? 'block' : 'none';
+}
+
+function setLang(l) {
+    document.getElementById('edit-lang').value = l;
+    document.querySelectorAll('#lang-pills .lang-pill').forEach(el => {
+        el.classList.toggle('active', el.dataset.lang === l);
+    });
+}
+
+function setSkill(s) {
+    document.getElementById('edit-skill').value = s;
+    document.querySelectorAll('#skills-grid .skill-card-inner').forEach(el => {
+        el.classList.toggle('selected', el.dataset.skill === s);
+    });
+}
+
+function updateTemp(v) {
+    const fv = parseFloat(v).toFixed(1);
+    document.getElementById('temp-val-display').textContent = fv;
+    const LABELS = {
+        '0.1': 'Почти одинаковые',
+        '0.2': 'Очень похожие',
+        '0.3': 'Стабильные',
+        '0.4': 'Немного разные',
+        '0.5': 'Сбалансировано',
+        '0.6': 'Умеренно разные',
+        '0.7': 'Рекомендуется ✦',
+        '0.8': 'Разнообразные',
+        '0.9': 'Очень разные',
+        '1.0': 'Макс. разные',
+    };
+    document.getElementById('temp-label-display').textContent = LABELS[fv] || '';
+    const pct = ((parseFloat(v) - 0.1) / 0.9 * 100).toFixed(1) + '%';
+    document.getElementById('edit-temp').style.setProperty('--pct', pct);
+}
+
+// ── Screen navigation ─────────────────────────────────────────────
+function switchScreen(s) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    document.getElementById('screen-' + s).classList.add('active');
+    document.querySelectorAll('#bottom-nav .nav-btn').forEach(el => {
+        el.classList.toggle('active', el.dataset.screen === s);
+    });
+    if (s === 'dashboard') loadDashboard();
+}
+
+document.querySelectorAll('#bottom-nav .nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
+});
+
+// ── External links ─────────────────────────────────────────────────
+function openBot() {
+    const username = document.getElementById('bot-username').value || 'ThreadsFarmAuthBot';
+    tg.openTelegramLink('https://t.me/' + username);
+}
+
+function openGuide() {
+    tg.openLink('#');
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+(async function init() {
+    await auth();
+    await loadDashboard();
+    document.getElementById('loading').classList.add('hidden');
+})().catch(e => {
+    console.error('Init error:', e);
+    document.getElementById('loading').classList.add('hidden');
+    document.body.innerHTML = `
+        <div class="auth-screen glass">
+            <div class="auth-icon">⚠️</div>
+            <h2>Ошибка</h2>
+            <p>Пожалуйста, откройте приложение через Telegram-бота.</p>
+            <button class="btn btn-violet btn-full" onclick="location.reload()">Перезагрузить</button>
+        </div>
+    `;
+});
+</script>
+</body>
+</html>
+"

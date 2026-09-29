@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit — {{ acc['name'] }} · ThreadsAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           DESIGN TOKENS — identical system as index.html
+        ═══════════════════════════════════════════════════════ */
+        :root {
+            --bg:          #080b14;
+            --bg2:         #0d1120;
+            --bg3:         #111827;
+            --surface:     rgba(255,255,255,.04);
+            --surface2:    rgba(255,255,255,.07);
+            --border:      rgba(255,255,255,.08);
+            --border2:     rgba(0,212,255,.2);
+
+            --cyan:        #00d4ff;
+            --cyan-dim:    rgba(0,212,255,.12);
+            --cyan-glow:   0 0 24px rgba(0,212,255,.3);
+
+            --violet:      #7c3aed;
+            --violet-dim:  rgba(124,58,237,.18);
+            --violet-glow: 0 0 24px rgba(124,58,237,.4);
+
+            --green:       #10d98e;
+            --green-dim:   rgba(16,217,142,.15);
+            --red:         #ff4d6a;
+            --amber:       #f59e0b;
+            --teal:        #06b6d4;
+
+            --txt:         #e8ecf4;
+            --txt2:        #8b95a8;
+            --txt3:        #4d5566;
+
+            --radius:      12px;
+            --radius-sm:   8px;
+            --font-display:'Syne', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--txt);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            padding: 28px 20px 80px;
+        }
+
+        /* Animated nebula */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 70% 50% at 10% 20%,  rgba(124,58,237,.1)  0%, transparent 60%),
+                radial-gradient(ellipse 55% 40% at 90% 75%,  rgba(0,212,255,.08)  0%, transparent 55%);
+            animation: nebula 20s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        @keyframes nebula {
+            0%   { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.05) rotate(.8deg); }
+        }
+
+        /* Grid overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        /* ── Page layout ────────────────────────────────────── */
+        .page-wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        /* ── Page header ────────────────────────────────────── */
+        .page-hdr {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--txt2);
+            font-size: 13px;
+            font-family: var(--font-body);
+            font-weight: 500;
+            text-decoration: none;
+            transition: all .18s;
+            cursor: pointer;
+        }
+        .back-btn:hover { color: var(--txt); border-color: rgba(255,255,255,.16); }
+
+        .page-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .page-title span { color: var(--cyan); }
+
+        /* ── Glass card ─────────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .card-hdr {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-hdr-icon {
+            width: 30px; height: 30px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .card-hdr-title {
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--txt);
+        }
+        .card-hdr-sub { font-size: 11px; color: var(--txt3); margin-top: 1px; }
+        .card-body { padding: 20px; }
+
+        /* Card accent colours */
+        .card-blue  { border-color: rgba(0,212,255,.18); }
+        .card-blue  .card-hdr { background: rgba(0,212,255,.05); }
+        .card-blue  .card-hdr-icon { background: rgba(0,212,255,.12); }
+
+        .card-amber { border-color: rgba(245,158,11,.18); }
+        .card-amber .card-hdr { background: rgba(245,158,11,.05); }
+        .card-amber .card-hdr-icon { background: rgba(245,158,11,.12); }
+
+        .card-teal  { border-color: rgba(6,182,212,.18); }
+        .card-teal  .card-hdr { background: rgba(6,182,212,.05); }
+        .card-teal  .card-hdr-icon { background: rgba(6,182,212,.12); }
+
+        .card-violet{ border-color: rgba(124,58,237,.2); }
+        .card-violet .card-hdr { background: rgba(124,58,237,.06); }
+        .card-violet .card-hdr-icon { background: rgba(124,58,237,.15); }
+
+        .card-green { border-color: rgba(16,217,142,.18); }
+        .card-green .card-hdr { background: rgba(16,217,142,.05); }
+        .card-green .card-hdr-icon { background: rgba(16,217,142,.12); }
+
+        /* ── Form elements ──────────────────────────────────── */
+        .form-row { margin-bottom: 14px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-row label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px;
+        }
+        .form-row input,
+        .form-row textarea,
+        .form-row select {
+            width: 100%;
+            padding: 10px 13px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--txt);
+            font-family: var(--font-body);
+            font-size: 14px;
+            outline: none;
+            transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+        .form-row input::placeholder,
+        .form-row textarea::placeholder { color: var(--txt3); }
+        .form-row input:focus,
+        .form-row textarea:focus,
+        .form-row select:focus {
+            border-color: rgba(0,212,255,.5);
+            background: rgba(0,212,255,.04);
+            box-shadow: 0 0 0 3px rgba(0,212,255,.08);
+        }
+        .form-row select option { background: var(--bg3); color: var(--txt); }
+        .form-row textarea { resize: vertical; min-height: 68px; }
+        .hint {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-top: 5px;
+            line-height: 1.5;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+
+        /* Timing input with unit badge */
+        .input-with-unit { position: relative; }
+        .input-with-unit input { padding-right: 46px; }
+        .input-unit {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--txt3);
+            pointer-events: none;
+        }
+
+        /* ── Mode pills ─────────────────────────────────────── */
+        .mode-pills { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .mode-pill {
+            flex: 1;
+            min-width: 180px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            padding: 11px 13px;
+            cursor: pointer;
+            transition: all .18s;
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+        }
+        .mode-pill input[type="radio"] { margin-top: 3px; accent-color: var(--cyan); flex-shrink: 0; }
+        .mode-pill .pill-label { font-size: 13px; font-weight: 600; color: var(--txt); }
+        .mode-pill .pill-desc  { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+        .mode-pill:has(input:checked) {
+            border-color: rgba(0,212,255,.4);
+            background: var(--cyan-dim);
+            box-shadow: var(--cyan-glow);
+        }
+
+        .mode-block {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px;
+            background: rgba(255,255,255,.025);
+        }
+
+        /* ── Language switcher ──────────────────────────────── */
+        .lang-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 15px;
+            background: rgba(124,58,237,.07);
+            border: 1px solid rgba(124,58,237,.18);
+            border-radius: var(--radius-sm);
+            margin-bottom: 14px;
+        }
+        .lang-bar-label { font-size: 12px; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: .5px; }
+        .lang-pills {
+            display: flex;
+            gap: 3px;
+            background: rgba(0,0,0,.4);
+            border-radius: 7px;
+            padding: 3px;
+        }
+        .lang-pill {
+            padding: 5px 13px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .18s;
+            border: none;
+            background: transparent;
+            color: var(--txt3);
+            letter-spacing: .2px;
+        }
+        .lang-pill.active {
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(124,58,237,.4);
+        }
+
+        /* ── Skills ─────────────────────────────────────────── */
+        .skills-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 9px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .skills-label em { color: var(--cyan); font-style: normal; }
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 7px;
+            margin-bottom: 14px;
+        }
+        .skill-card { position: relative; cursor: pointer; }
+        .skill-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+        .skill-inner {
+            padding: 9px 11px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            transition: all .18s;
+            cursor: pointer;
+        }
+        .skill-card input:checked + .skill-inner {
+            border-color: rgba(0,212,255,.5);
+            background: var(--cyan-dim);
+            box-shadow: var(--cyan-glow);
+        }
+        .skill-emoji { font-size: 17px; }
+        .skill-name  { font-size: 11px; font-weight: 700; color: var(--txt); margin-top: 3px; line-height: 1.2; }
+        .skill-desc  { font-size: 10px; color: var(--txt3); margin-top: 2px; line-height: 1.3; }
+
+        /* ── Temperature slider ─────────────────────────────── */
+        .temp-bar {
+            padding: 14px 16px;
+            background: rgba(0,212,255,.05);
+            border: 1px solid rgba(0,212,255,.15);
+            border-radius: var(--radius-sm);
+            margin-bottom: 14px;
+        }
+        .temp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .temp-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .temp-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .temp-value {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--cyan);
+            min-width: 36px;
+            text-align: right;
+        }
+        .temp-desc {
+            font-size: 11px;
+            color: var(--txt3);
+            min-width: 160px;
+            text-align: right;
+            transition: color .2s;
+        }
+        .temp-track { position: relative; }
+        input[type="range"].temp-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: linear-gradient(
+                to right,
+                var(--cyan) 0%,
+                var(--cyan) var(--pct, 65%),
+                rgba(255,255,255,.1) var(--pct, 65%),
+                rgba(255,255,255,.1) 100%
+            );
+            outline: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            transition: background .1s;
+        }
+        input[type="range"].temp-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 10px rgba(0,212,255,.6);
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+        }
+        input[type="range"].temp-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+            box-shadow: 0 0 18px rgba(0,212,255,.8);
+        }
+        input[type="range"].temp-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 10px rgba(0,212,255,.6);
+            border: none;
+            cursor: pointer;
+        }
+        .temp-axis {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+        }
+        .temp-axis span {
+            font-size: 10px;
+            color: var(--txt3);
+        }
+
+        /* ── Divider ────────────────────────────────────────── */
+        .hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+        /* ── Save bar ───────────────────────────────────────── */
+        .save-bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 8px;
+        }
+        .btn-save {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            font-family: var(--font-body);
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            box-shadow: var(--violet-glow);
+            transition: filter .18s, transform .1s;
+        }
+        .btn-save:hover  { filter: brightness(1.12); }
+        .btn-save:active { transform: scale(.98); }
+
+        .btn-cancel {
+            color: var(--txt2);
+            font-size: 13px;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            font-family: var(--font-body);
+            transition: all .18s;
+        }
+        .btn-cancel:hover { color: var(--txt); border-color: rgba(255,255,255,.14); }
+
+        /* ── Toggle switch (same as index.html) ────────────────── */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255,255,255,.1);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            transition: .3s;
+        }
+        .slider::before {
+            content: '';
+            position: absolute;
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background: var(--txt3);
+            border-radius: 50%;
+            transition: .3s;
+        }
+        input:checked + .slider { background: rgba(16,217,142,.25); border-color: rgba(16,217,142,.4); }
+        input:checked + .slider::before { transform: translateX(18px); background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+        /* Validation error toast */
+        #val-error {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,77,106,.15);
+            border: 1px solid rgba(255,77,106,.4);
+            color: var(--red);
+            padding: 12px 22px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 24px rgba(0,0,0,.4);
+            max-width: 380px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="val-error"></div>
+
+<div class="page-wrap">
+
+    <!-- Page header -->
+    <div class="page-hdr">
+        <a href="/" class="back-btn">← Назад</a>
+        <h1 class="page-title">Настройки: <span>{{ acc['name'] }}</span></h1>
+    </div>
+
+    <form action="/update_account/{{ acc['id'] }}" method="post" id="editForm">
+
+        <!-- ══ 1. CREDENTIALS ═══════════════════════════════════ -->
+        <div class="card card-blue">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">🔑</div>
+                <div>
+                    <div class="card-hdr-title">Данные аккаунта</div>
+                    <div class="card-hdr-sub">Credentials для подключения к Threads Graph API</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="grid-2">
+                    <div class="form-row">
+                        <label>Имя аккаунта</label>
+                        <input type="text" name="name" value="{{ acc['name'] }}" required>
+                    </div>
+                    <div class="form-row">
+                        <label>Прокси</label>
+                        <input type="text" name="proxy" value="{{ acc['proxy'] or '' }}" placeholder="http://user:pass@ip:port">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Threads User ID</label>
+                    <input type="text" name="threads_user_id" value="{{ acc['threads_user_id'] }}" required>
+                </div>
+                <div class="form-row">
+                    <label>Access Token</label>
+                    <input type="text" name="access_token" value="{{ acc['access_token'] }}" required>
+                    <p class="hint">Долгосрочный токен Meta Graph API. Храните в секрете.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ 2. GENERATION SETTINGS ═══════════════════════════ -->
+        <div class="card card-amber">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">✍</div>
+                <div>
+                    <div class="card-hdr-title">Генерация постов · Claude AI</div>
+                    <div class="card-hdr-sub">Режим, промпты, язык и стиль письма</div>
+                </div>
+            </div>
+            <div class="card-body">
+
+                <!-- Post mode pills -->
+                <div class="mode-pills">
+                    <label class="mode-pill">
+                        <input type="radio" name="post_mode" id="mode_prompts" value="prompts"
+                            {% if acc['post_mode'] != 'ai_adapt' %}checked{% endif %}
+                            onchange="toggleModes()">
+                        <div>
+                            <div class="pill-label">📝 5 промптов</div>
+                            <div class="pill-desc">Claude выбирает рандомный промпт при публикации</div>
+                        </div>
+                    </label>
+                    <label class="mode-pill">
+                        <input type="radio" name="post_mode" id="mode_ai" value="ai_adapt"
+                            {% if acc['post_mode'] == 'ai_adapt' %}checked{% endif %}
+                            onchange="toggleModes()">
+                        <div>
+                            <div class="pill-label">🧠 ИИ-Адаптация</div>
+                            <div class="pill-desc">Парсинг вирусных постов + адаптация под нишу</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Prompts block -->
+                <div id="block_prompts" class="mode-block">
+                    <div class="form-row"><label>Промпт 1</label><textarea name="prompt_1" rows="2">{{ acc['prompt_1'] or '' }}</textarea></div>
+                    <div class="form-row"><label>Промпт 2</label><textarea name="prompt_2" rows="2">{{ acc['prompt_2'] or '' }}</textarea></div>
+                    <div class="form-row"><label>Промпт 3</label><textarea name="prompt_3" rows="2">{{ acc['prompt_3'] or '' }}</textarea></div>
+                    <div class="form-row"><label>Промпт 4</label><textarea name="prompt_4" rows="2">{{ acc['prompt_4'] or '' }}</textarea></div>
+                    <div class="form-row"><label>Промпт 5</label><textarea name="prompt_5" rows="2">{{ acc['prompt_5'] or '' }}</textarea></div>
+                </div>
+
+                <!-- AI adapt block -->
+                <div id="block_ai" class="mode-block" style="display:none;">
+                    <div class="form-row">
+                        <label>🔍 Тематики-доноры</label>
+                        <input type="text" name="source_themes" value="{{ acc['source_themes'] or '' }}" placeholder="Напр.: поиск работы, фриланс, выгорание">
+                    </div>
+                    <div class="form-row">
+                        <label>🎯 Твоя ниша</label>
+                        <input type="text" name="target_theme" value="{{ acc['target_theme'] or '' }}" placeholder="Напр.: Крипта и P2P арбитраж">
+                    </div>
+                    <div class="form-row">
+                        <label>⚙ Мини-промпт</label>
+                        <textarea name="mini_prompt" rows="2">{{ acc['mini_prompt'] or '' }}</textarea>
+                    </div>
+                </div>
+
+                <hr class="hr">
+
+                <!-- ── Language switcher ──────────────────────── -->
+                <div class="lang-bar">
+                    <span class="lang-bar-label">🌐 Язык поста</span>
+                    <div class="lang-pills" id="langPills">
+                        <button type="button" class="lang-pill {% if not acc['post_language'] or acc['post_language'] == 'ru' %}active{% endif %}" data-lang="ru" onclick="setLang('ru')">🇷🇺 RU</button>
+                        <button type="button" class="lang-pill {% if acc['post_language'] == 'en' %}active{% endif %}"                              data-lang="en" onclick="setLang('en')">🇺🇸 EN</button>
+                        <button type="button" class="lang-pill {% if acc['post_language'] == 'uk' %}active{% endif %}"                              data-lang="uk" onclick="setLang('uk')">🇺🇦 UA</button>
+                    </div>
+                    <input type="hidden" name="post_language" id="postLangInput"
+                           value="{{ acc['post_language'] if acc['post_language'] else 'ru' }}">
+                </div>
+
+                <!-- ── Skills ────────────────────────────────── -->
+                <div class="skills-label">✦ Скилл (стиль письма Claude) <em>персона</em></div>
+                <div class="skills-grid">
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value=""
+                            {% if not acc['ai_skill'] %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">🤖</div>
+                            <div class="skill-name">Без стиля</div>
+                            <div class="skill-desc">Нейтральный, следует промпту</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="crypto_bro"
+                            {% if acc['ai_skill'] == 'crypto_bro' %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">🤑</div>
+                            <div class="skill-name">Bold Crypto Bro</div>
+                            <div class="skill-desc">Агрессивный, токсично-позитивный</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="analyst"
+                            {% if acc['ai_skill'] == 'analyst' %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">📊</div>
+                            <div class="skill-name">Smart Analyst</div>
+                            <div class="skill-desc">Данные, экспертный сухой тон</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="provocateur"
+                            {% if acc['ai_skill'] == 'provocateur' %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">🔥</div>
+                            <div class="skill-name">Provocateur</div>
+                            <div class="skill-desc">Острые мнения, споры</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="storyteller"
+                            {% if acc['ai_skill'] == 'storyteller' %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">📖</div>
+                            <div class="skill-name">Storyteller</div>
+                            <div class="skill-desc">Личные истории, эмоции</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="hustler"
+                            {% if acc['ai_skill'] == 'hustler' %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">💼</div>
+                            <div class="skill-name">Hustler</div>
+                            <div class="skill-desc">Продажи, CTA, конверсия</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="philosopher"
+                            {% if acc['ai_skill'] == 'philosopher' %}checked{% endif %}>
+                        <div class="skill-inner">
+                            <div class="skill-emoji">🧘</div>
+                            <div class="skill-name">Philosopher</div>
+                            <div class="skill-desc">Глубина, смысл, медленно</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ 2b. CREATIVITY / TEMPERATURE ════════════════════════ -->
+        <div class="card card-blue">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">🎲</div>
+                <div>
+                    <div class="card-hdr-title">Уровень креативности (Разнообразие постов)</div>
+                    <div class="card-hdr-sub">Управляет параметром temperature в Claude API</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="temp-bar">
+                    <div class="temp-header">
+                        <span class="temp-label">🌡 Temperature</span>
+                        <div class="temp-badge">
+                            <span class="temp-value" id="tempValueDisplay">{{ "%.1f"|format(acc['ai_temperature'] if acc['ai_temperature'] is not none else 0.7) }}</span>
+                            <span class="temp-desc" id="tempDescDisplay"></span>
+                        </div>
+                    </div>
+                    <div class="temp-track">
+                        <input
+                            type="range"
+                            class="temp-slider"
+                            id="tempSlider"
+                            name="ai_temperature"
+                            min="0.1" max="1.0" step="0.1"
+                            value="{{ acc['ai_temperature'] if acc['ai_temperature'] is not none else 0.7 }}"
+                        >
+                    </div>
+                    <div class="temp-axis">
+                        <span>0.1 — Похожие</span>
+                        <span>0.5 — Сбалансировано</span>
+                        <span>1.0 — Абсолютно разные</span>
+                    </div>
+                </div>
+                <p class="hint">Низкие значения (0.1–0.3) дают стабильные, предсказуемые посты. Высокие (0.8–1.0) — максимальное разнообразие и оригинальность, но иногда неожиданные результаты. Рекомендуется: 0.7.</p>
+            </div>
+        </div>
+
+        <!-- ══ 2c. IMAGES ══════════════════════════════════════════ -->
+        <div class="card card-violet">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">🖼️</div>
+                <div>
+                    <div class="card-hdr-title">Изображения в постах</div>
+                    <div class="card-hdr-sub">Генерация и прикрепление картинок к публикациям</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <span style="font-size:14px; color:var(--txt); font-weight:600;">🖼️ Добавлять изображения к постам</span>
+                    <label class="switch">
+                        <input type="checkbox" name="attach_images" value="1"
+                               {% if acc['attach_images'] != 0 %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="hint">Если включено — бот иногда генерирует картинку (Pollinations) и прикрепляет её к развёрнутым постам. Одностре́чники всегда без картинки. Выключите, если нужны только текстовые посты.</p>
+            </div>
+        </div>
+
+        <!-- ══ 3. POST TIMING ════════════════════════════════════ -->
+        <div class="card card-teal">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">⏱</div>
+                <div>
+                    <div class="card-hdr-title">Тайминги автопостинга</div>
+                    <div class="card-hdr-sub">Рандомная пауза между публикациями</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="grid-2">
+                    <div class="form-row">
+                        <label>Мин. пауза</label>
+                        <div class="input-with-unit">
+                            <input type="number" name="pub_delay_min" min="1" max="1440"
+                                   value="{{ acc['pub_delay_min'] or 15 }}" required>
+                            <span class="input-unit">мин</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>Макс. пауза</label>
+                        <div class="input-with-unit">
+                            <input type="number" name="pub_delay_max" min="1" max="1440"
+                                   value="{{ acc['pub_delay_max'] or 45 }}" required>
+                            <span class="input-unit">мин</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="hint">Рекомендуется: 15–45 мин (активный) · 60–180 мин (безопасный). Бот выберет случайное значение в диапазоне.</p>
+            </div>
+        </div>
+
+        <!-- ══ 4. OUTREACH ════════════════════════════════════════ -->
+        <div class="card card-green">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">📡</div>
+                <div>
+                    <div class="card-hdr-title">Холодный нейрокомментинг (Outreach)</div>
+                    <div class="card-hdr-sub">Поиск чужих постов и умные комментарии</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <label>Ключевые слова для поиска</label>
+                    <input type="text" name="outreach_keywords"
+                           value="{{ acc['outreach_keywords'] or '' }}"
+                           placeholder="Напр.: крипта, удаленка, инвестиции, фриланс">
+                    <p class="hint">Через запятую. Claude находит чужие посты по этим темам и оставляет экспертные комментарии + CTA.</p>
+                </div>
+                <div class="grid-2">
+                    <div class="form-row">
+                        <label>Мин. задержка между комментариями</label>
+                        <div class="input-with-unit">
+                            <input type="number" name="outreach_delay_min" min="1" max="1440"
+                                   value="{{ acc['outreach_delay_min'] or 10 }}" required>
+                            <span class="input-unit">мин</span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>Макс. задержка между комментариями</label>
+                        <div class="input-with-unit">
+                            <input type="number" name="outreach_delay_max" min="1" max="1440"
+                                   value="{{ acc['outreach_delay_max'] or 30 }}" required>
+                            <span class="input-unit">мин</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="hint">Рекомендуется не менее 10–30 мин. Слишком частый outreach увеличивает риск ограничений Meta.</p>
+            </div>
+        </div>
+
+        <!-- ══ 5. COMMENT BOT ════════════════════════════════════ -->
+        <div class="card card-violet">
+            <div class="card-hdr">
+                <div class="card-hdr-icon">🧠</div>
+                <div>
+                    <div class="card-hdr-title">Автоответчик на входящие «+»</div>
+                    <div class="card-hdr-sub">Claude отвечает на лиды в ваших постах</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <label>Промпт для Claude — как отвечать на комментарий</label>
+                    <textarea name="custom_prompt" rows="3">{{ acc['custom_prompt'] or '' }}</textarea>
+                    <p class="hint">Напр.: «Ты успешный инвестор. Отвечай кратко, с долей иронии. Без смайликов.»</p>
+                </div>
+                <div class="form-row">
+                    <label>CTA — финальная строка (всегда добавляется в конец)</label>
+                    <input type="text" name="custom_reply" value="{{ acc['custom_reply'] or '' }}"
+                           placeholder="Ссылка на гайд уже в шапке профиля! 🚀">
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ Save bar ══════════════════════════════════════════ -->
+        <div class="save-bar">
+            <button type="submit" class="btn-save">✦ Сохранить изменения</button>
+            <a href="/" class="btn-cancel">Отмена</a>
+        </div>
+
+    </form>
+</div><!-- /page-wrap -->
+
+<script>
+    /* ── Mode toggle ──────────────────────────────────────────── */
+    function toggleModes() {
+        const isPrompts = document.getElementById('mode_prompts').checked;
+        document.getElementById('block_prompts').style.display = isPrompts ? 'block' : 'none';
+        document.getElementById('block_ai').style.display      = isPrompts ? 'none'  : 'block';
+    }
+
+    /* ── Language switcher ────────────────────────────────────── */
+    function setLang(lang) {
+        document.getElementById('postLangInput').value = lang;
+        document.querySelectorAll('.lang-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+    }
+
+    /* ── Temperature slider ───────────────────────────────── */
+    const TEMP_LABELS = {
+        '0.1': '10% — Очень похожие',
+        '0.2': '20% — Почти одинаковые',
+        '0.3': '30% — Стабильные',
+        '0.4': '40% — Немного разные',
+        '0.5': '50% — Сбалансировано',
+        '0.6': '60% — Умеренно разные',
+        '0.7': '70% — Рекомендуется ✦',
+        '0.8': '80% — Разнообразные',
+        '0.9': '90% — Очень разные',
+        '1.0': '100% — Абсолютно разные',
+    };
+
+    function updateTempSlider(val) {
+        const pct = ((parseFloat(val) - 0.1) / 0.9 * 100).toFixed(1) + '%';
+        const slider = document.getElementById('tempSlider');
+        slider.style.setProperty('--pct', pct);
+        document.getElementById('tempValueDisplay').textContent = parseFloat(val).toFixed(1);
+        document.getElementById('tempDescDisplay').textContent  = TEMP_LABELS[parseFloat(val).toFixed(1)] || '';
+    }
+
+    document.getElementById('tempSlider').addEventListener('input', function() {
+        updateTempSlider(this.value);
+    });
+
+    /* ── Client-side validation with toast ───────────────────── */
+    function showError(msg) {
+        const el = document.getElementById('val-error');
+        el.textContent = '⚠ ' + msg;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+        const pubMin  = parseInt(document.querySelector('[name="pub_delay_min"]').value);
+        const pubMax  = parseInt(document.querySelector('[name="pub_delay_max"]').value);
+        const outMin  = parseInt(document.querySelector('[name="outreach_delay_min"]').value);
+        const outMax  = parseInt(document.querySelector('[name="outreach_delay_max"]').value);
+
+        if (pubMin >= pubMax) {
+            e.preventDefault();
+            showError('Мин. пауза публикации должна быть меньше макс. паузы.');
+            return;
+        }
+        if (outMin >= outMax) {
+            e.preventDefault();
+            showError('Мин. задержка комментинга должна быть меньше макс. задержки.');
+        }
+    });
+
+    /* Init */
+    window.addEventListener('DOMContentLoaded', function() {
+        toggleModes();
+        updateTempSlider(document.getElementById('tempSlider').value);
+    });
+</script>
+</body>
+</html>

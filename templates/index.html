@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadsAI — Control Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           DESIGN TOKENS
+        ═══════════════════════════════════════════════════════ */
+        :root {
+            --bg:          #080b14;
+            --bg2:         #0d1120;
+            --bg3:         #111827;
+            --surface:     rgba(255,255,255,.04);
+            --surface2:    rgba(255,255,255,.07);
+            --border:      rgba(255,255,255,.08);
+            --border2:     rgba(0,212,255,.2);
+
+            --cyan:        #00d4ff;
+            --cyan-dim:    rgba(0,212,255,.15);
+            --cyan-glow:   0 0 24px rgba(0,212,255,.35);
+
+            --violet:      #7c3aed;
+            --violet-dim:  rgba(124,58,237,.18);
+            --violet-glow: 0 0 24px rgba(124,58,237,.4);
+
+            --green:       #10d98e;
+            --green-dim:   rgba(16,217,142,.15);
+            --red:         #ff4d6a;
+            --red-dim:     rgba(255,77,106,.15);
+            --amber:       #f59e0b;
+
+            --txt:         #e8ecf4;
+            --txt2:        #8b95a8;
+            --txt3:        #4d5566;
+
+            --radius:      12px;
+            --radius-sm:   8px;
+            --font-display:'Syne', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           RESET & BASE
+        ═══════════════════════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--txt);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ANIMATED BACKGROUND NEBULA
+        ═══════════════════════════════════════════════════════ */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 15% 10%,  rgba(124,58,237,.12)  0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 80%,  rgba(0,212,255,.10)   0%, transparent 55%),
+                radial-gradient(ellipse 50% 60% at 50% 50%,  rgba(16,217,142,.04)  0%, transparent 70%);
+            animation: nebula 18s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        @keyframes nebula {
+            0%   { opacity: 1; transform: scale(1)   rotate(0deg); }
+            50%  { opacity: .8; transform: scale(1.06) rotate(1deg); }
+            100% { opacity: 1; transform: scale(1)   rotate(0deg); }
+        }
+
+        /* Fine grid overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           LAYOUT
+        ═══════════════════════════════════════════════════════ */
+        .page-wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 24px 80px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           TOPBAR
+        ═══════════════════════════════════════════════════════ */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--violet), var(--cyan));
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+            box-shadow: var(--violet-glow);
+        }
+        .logo-text {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -.3px;
+        }
+        .logo-text span { color: var(--cyan); }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .greeting {
+            font-size: 13px;
+            color: var(--txt2);
+        }
+        .greeting strong { color: var(--cyan); }
+
+        /* ═══════════════════════════════════════════════════════
+           GLASS CARD
+        ═══════════════════════════════════════════════════════ */
+        .glass {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .glass-cyan {
+            border-color: var(--border2);
+            box-shadow: 0 0 0 1px rgba(0,212,255,.06), inset 0 1px 0 rgba(0,212,255,.08);
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           BUTTONS
+        ═══════════════════════════════════════════════════════ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s;
+            text-decoration: none;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0);
+            transition: background .18s;
+        }
+        .btn:hover::after { background: rgba(255,255,255,.06); }
+
+        .btn-cyan {
+            background: linear-gradient(135deg, rgba(0,212,255,.2), rgba(0,212,255,.1));
+            color: var(--cyan);
+            border: 1px solid rgba(0,212,255,.3);
+        }
+        .btn-cyan:hover { box-shadow: var(--cyan-glow); border-color: var(--cyan); }
+
+        .btn-violet {
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            box-shadow: var(--violet-glow);
+        }
+        .btn-violet:hover { filter: brightness(1.12); }
+
+        .btn-green {
+            background: linear-gradient(135deg, rgba(16,217,142,.2), rgba(16,217,142,.1));
+            color: var(--green);
+            border: 1px solid rgba(16,217,142,.3);
+        }
+        .btn-green:hover { box-shadow: 0 0 20px rgba(16,217,142,.3); border-color: var(--green); }
+
+        .btn-red {
+            background: linear-gradient(135deg, rgba(255,77,106,.2), rgba(255,77,106,.1));
+            color: var(--red);
+            border: 1px solid rgba(255,77,106,.3);
+        }
+        .btn-red:hover { box-shadow: 0 0 20px rgba(255,77,106,.3); border-color: var(--red); }
+
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--txt2);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { color: var(--txt); border-color: rgba(255,255,255,.16); }
+
+        /* ═══════════════════════════════════════════════════════
+           LOCK / EXPIRED SCREENS
+        ═══════════════════════════════════════════════════════ */
+        .auth-screen {
+            max-width: 420px;
+            margin: 120px auto;
+            text-align: center;
+            padding: 48px 36px;
+        }
+        .auth-screen .auth-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(0,212,255,.5));
+        }
+        .auth-screen h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .auth-screen p {
+            color: var(--txt2);
+            font-size: 14px;
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           QUOTA BAR
+        ═══════════════════════════════════════════════════════ */
+        .quota-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+        }
+        .quota-label { font-size: 13px; color: var(--txt2); }
+        .quota-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--cyan); }
+        .quota-denom { font-size: 14px; color: var(--txt3); }
+
+        /* ═══════════════════════════════════════════════════════
+           STATUS WORKERS
+        ═══════════════════════════════════════════════════════ */
+        .workers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+        @media (max-width: 600px) { .workers-grid { grid-template-columns: 1fr; } }
+
+        .worker-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            gap: 12px;
+        }
+        .worker-info { flex: 1; min-width: 0; }
+        .worker-name {
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 3px;
+        }
+        .worker-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-on  { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-dot 2s infinite; }
+        .dot-off { background: var(--red); }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .4; }
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           SECTION HEADINGS
+        ═══════════════════════════════════════════════════════ */
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .section-heading h2 {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--txt);
+        }
+        .section-heading .tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: var(--cyan-dim);
+            color: var(--cyan);
+            border: 1px solid rgba(0,212,255,.2);
+            letter-spacing: .4px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           LIMIT REACHED BANNER
+        ═══════════════════════════════════════════════════════ */
+        .limit-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px 22px;
+            margin-bottom: 28px;
+            border: 1px solid rgba(255,77,106,.25);
+            background: rgba(255,77,106,.06);
+        }
+        .limit-banner-icon { font-size: 24px; flex-shrink: 0; }
+        .limit-banner h3 {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--red);
+            margin-bottom: 4px;
+        }
+        .limit-banner p { font-size: 13px; color: var(--txt2); margin-bottom: 12px; }
+
+        /* ═══════════════════════════════════════════════════════
+           ADD ACCOUNT FORM
+        ═══════════════════════════════════════════════════════ */
+        .add-form {
+            padding: 28px;
+            margin-bottom: 36px;
+        }
+        .form-row { margin-bottom: 16px; }
+        .form-row label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 7px;
+        }
+        .form-row input,
+        .form-row textarea,
+        .form-row select {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--txt);
+            font-family: var(--font-body);
+            font-size: 14px;
+            transition: border-color .18s, box-shadow .18s;
+            outline: none;
+        }
+        .form-row input::placeholder,
+        .form-row textarea::placeholder { color: var(--txt3); }
+        .form-row input:focus,
+        .form-row textarea:focus,
+        .form-row select:focus {
+            border-color: rgba(0,212,255,.5);
+            box-shadow: 0 0 0 3px rgba(0,212,255,.08);
+            background: rgba(0,212,255,.04);
+        }
+        .form-row select option { background: var(--bg3); color: var(--txt); }
+        .form-row textarea { resize: vertical; min-height: 72px; }
+
+        /* ─── Generation settings panel ─────────────────────── */
+        .gen-panel {
+            border: 1px solid rgba(245,158,11,.2);
+            background: rgba(245,158,11,.04);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .gen-panel-title {
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--amber);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        /* Mode radio pills */
+        .mode-pills { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .mode-pill {
+            flex: 1;
+            min-width: 180px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            cursor: pointer;
+            transition: all .18s;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .mode-pill input[type="radio"] { margin-top: 2px; accent-color: var(--cyan); flex-shrink: 0; }
+        .mode-pill .pill-label { font-size: 13px; font-weight: 600; color: var(--txt); }
+        .mode-pill .pill-desc  { font-size: 11px; color: var(--txt3); margin-top: 2px; }
+        .mode-pill:has(input:checked) {
+            border-color: rgba(0,212,255,.4);
+            background: var(--cyan-dim);
+            box-shadow: var(--cyan-glow);
+        }
+
+        .mode-block {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            background: rgba(255,255,255,.03);
+        }
+        .mode-block .form-row { margin-bottom: 10px; }
+        .mode-block .form-row:last-child { margin-bottom: 0; }
+
+        /* ─── Language switcher ──────────────────────────────── */
+        .lang-switcher-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: rgba(124,58,237,.08);
+            border: 1px solid rgba(124,58,237,.2);
+            border-radius: var(--radius-sm);
+        }
+        .lang-switcher-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .lang-pills {
+            display: flex;
+            gap: 4px;
+            background: rgba(0,0,0,.3);
+            border-radius: 7px;
+            padding: 3px;
+        }
+        .lang-pill {
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .18s;
+            border: none;
+            background: transparent;
+            color: var(--txt3);
+            letter-spacing: .3px;
+        }
+        .lang-pill.active {
+            background: linear-gradient(135deg, var(--violet), #6d28d9);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(124,58,237,.4);
+        }
+
+        /* ─── Skills selector ────────────────────────────────── */
+        .skills-wrap {
+            margin-bottom: 16px;
+        }
+        .skills-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--txt2);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 9px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .skills-label span { color: var(--cyan); }
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+        }
+        .skill-card {
+            position: relative;
+            cursor: pointer;
+        }
+        .skill-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0; height: 0;
+        }
+        .skill-card-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            transition: all .18s;
+            cursor: pointer;
+        }
+        .skill-card input:checked + .skill-card-inner {
+            border-color: rgba(0,212,255,.5);
+            background: var(--cyan-dim);
+            box-shadow: var(--cyan-glow);
+        }
+        .skill-card-icon { font-size: 18px; }
+        .skill-card-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--txt);
+            line-height: 1.2;
+        }
+        .skill-card-desc {
+            font-size: 10px;
+            color: var(--txt3);
+            line-height: 1.3;
+        }
+
+        /* ─── Neurodivider ───────────────────────────────────── */
+        .section-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 18px 0;
+        }
+
+        /* ─── Comment section (listener) ────────────────────── */
+        .comment-panel {
+            border: 1px solid rgba(0,212,255,.15);
+            background: rgba(0,212,255,.04);
+            border-radius: var(--radius);
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+        .comment-panel-title {
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: var(--cyan);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           ACCOUNTS TABLE
+        ═══════════════════════════════════════════════════════ */
+        .table-wrap {
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: transparent;
+            font-size: 13px;
+        }
+        thead tr {
+            background: rgba(255,255,255,.04);
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--txt3);
+        }
+        td {
+            padding: 13px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.04);
+            color: var(--txt);
+            vertical-align: middle;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr { transition: background .12s; }
+        tbody tr:hover { background: rgba(255,255,255,.025); }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(255,255,255,.07);
+            color: var(--txt2);
+            border: 1px solid var(--border);
+            font-family: 'Courier New', monospace;
+        }
+        .badge-mode-ai     { background: var(--violet-dim); color: #c4b5fd; border-color: rgba(124,58,237,.3); }
+        .badge-mode-prompt { background: var(--cyan-dim);   color: var(--cyan); border-color: rgba(0,212,255,.3); }
+
+        /* Timing badges */
+        .timing-stack { display: flex; flex-direction: column; gap: 3px; }
+        .tbadge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tbadge-post    { background: rgba(0,212,255,.1);   color: var(--cyan); }
+        .tbadge-outreach{ background: rgba(16,217,142,.1); color: var(--green); }
+
+        /* ─── Toggle switch ──────────────────────────────────── */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255,255,255,.1);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            transition: .3s;
+        }
+        .slider::before {
+            content: '';
+            position: absolute;
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background: var(--txt3);
+            border-radius: 50%;
+            transition: .3s;
+        }
+        input:checked + .slider { background: rgba(16,217,142,.25); border-color: rgba(16,217,142,.4); }
+        input:checked + .slider::before { transform: translateX(18px); background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+        /* ─── Action buttons in table ────────────────────────── */
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 6px;
+            transition: background .15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .action-btn:hover { background: rgba(255,255,255,.08); }
+        .empty-state {
+            text-align: center;
+            color: var(--txt3);
+            padding: 36px;
+            font-size: 13px;
+        }
+        .empty-state .empty-icon { font-size: 32px; margin-bottom: 8px; opacity: .4; }
+    </style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+    <!-- ══════════════════════════════════
+         LOCKED / EXPIRED
+    ══════════════════════════════════════ -->
+    {% if not tg_user_id or sub_expired %}
+    <div class="auth-screen glass">
+        {% if not tg_user_id %}
+            <div class="auth-icon">🔐</div>
+            <h2>Доступ закрыт</h2>
+            <p>Откройте Telegram-бота, чтобы авторизоваться и получить ссылку для входа.</p>
+            <a href="https://t.me/{{ tg_bot_username }}" class="btn btn-cyan" style="display:block; text-align:center; padding:14px;">
+                ↗ Открыть Telegram-бота
+            </a>
+        {% else %}
+            <div class="auth-icon">💸</div>
+            <h2 style="color:var(--red)">Подписка истекла</h2>
+            <p>Твой тарифный план исчерпан. Работа всех аккаунтов приостановлена.</p>
+            <a href="https://t.me/{{ tg_bot_username }}" class="btn btn-green" style="display:block; text-align:center; padding:14px;">
+                💳 Продлить подписку
+            </a>
+        {% endif %}
+    </div>
+
+    {% else %}
+
+    <!-- ══════════════════════════════════
+         TOPBAR
+    ══════════════════════════════════════ -->
+    <div class="topbar">
+        <div class="logo">
+            <div class="logo-icon">🧵</div>
+            <div class="logo-text">Threads<span>AI</span></div>
+        </div>
+        <div class="topbar-right">
+            <span class="greeting">👋 <strong>{{ tg_first_name }}</strong></span>
+            <a href="/stats" class="btn btn-cyan">📊 Статистика</a>
+            <a href="/logout" class="btn btn-ghost">Выйти</a>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         QUOTA
+    ══════════════════════════════════════ -->
+    <div class="glass quota-bar" style="margin-bottom:20px;">
+        <div>
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--txt3); margin-bottom:3px; font-family:var(--font-display); font-weight:600;">Аккаунты</div>
+            <div style="display:flex;align-items:baseline;gap:6px;">
+                <span class="quota-value">{{ current_count }}</span>
+                <span class="quota-denom">/ {{ max_accounts }}</span>
+            </div>
+        </div>
+        <a href="https://t.me/{{ tg_bot_username }}" class="btn btn-ghost" style="font-size:12px;">
+            ⬆ Увеличить лимит
+        </a>
+    </div>
+
+    <!-- ══════════════════════════════════
+         WORKERS
+    ══════════════════════════════════════ -->
+    <div class="workers-grid" style="margin-bottom:32px;">
+        <!-- Farm -->
+        <div class="glass worker-card">
+            <div class="worker-info">
+                <div class="worker-name">📤 Постинг</div>
+                <div class="worker-status">
+                    <span class="dot {% if farm_active %}dot-on{% else %}dot-off{% endif %}"></span>
+                    <span style="color:{% if farm_active %}var(--green){% else %}var(--red){% endif %}">
+                        {% if farm_active %}Работает{% else %}Остановлен{% endif %}
+                    </span>
+                </div>
+            </div>
+            <form action="/start_farm" method="post">
+                <button type="submit" class="btn {% if farm_active %}btn-red{% else %}btn-green{% endif %}" style="font-size:12px;">
+                    {% if farm_active %}Стоп{% else %}Запуск{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <!-- Listener -->
+        <div class="glass worker-card">
+            <div class="worker-info">
+                <div class="worker-name">📡 Нейрокомментинг</div>
+                <div class="worker-status">
+                    <span class="dot {% if listener_active %}dot-on{% else %}dot-off{% endif %}"></span>
+                    <span style="color:{% if listener_active %}var(--green){% else %}var(--red){% endif %}">
+                        {% if listener_active %}Сканирует{% else %}Остановлен{% endif %}
+                    </span>
+                </div>
+            </div>
+            <form action="/start_listener" method="post">
+                <button type="submit" class="btn {% if listener_active %}btn-red{% else %}btn-green{% endif %}" style="font-size:12px;">
+                    {% if listener_active %}Стоп{% else %}Запуск{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         ADD / CONFIGURE ACCOUNT
+    ══════════════════════════════════════ -->
+    <div class="section-heading">
+        <h2>Добавить аккаунт</h2>
+        <span class="tag">Claude AI</span>
+    </div>
+
+    {% if configure_account_id and configure_account %}
+    <!-- ── Post-OAuth: configure the freshly-connected account ── -->
+    <div class="glass" style="padding:16px 22px; margin-bottom:16px; border-left:3px solid var(--green); border-radius:var(--radius);">
+        <div style="color:var(--green); font-size:14px;">
+            ✅ Аккаунт <strong>@{{ configure_account['name'] }}</strong> подключён!
+            Настройте параметры генерации и нажмите «Сохранить».
+        </div>
+    </div>
+
+    <form action="/update_account/{{ configure_account_id }}" method="post">
+        <!-- Required fields carried as hidden inputs -->
+        <input type="hidden" name="name"            value="{{ configure_account['name'] }}">
+        <input type="hidden" name="threads_user_id" value="{{ configure_account['threads_user_id'] }}">
+        <input type="hidden" name="access_token"    value="{{ configure_account['access_token'] }}">
+
+        <!-- ─── Generation Settings ─────────────────────────── -->
+        <div class="gen-panel">
+            <div class="gen-panel-title">
+                ⚙ Настройки генерации · <span style="color:var(--cyan)">Claude AI</span>
+            </div>
+
+            <!-- Mode pills -->
+            <div class="mode-pills">
+                <label class="mode-pill">
+                    <input type="radio" name="post_mode" id="mode_prompts" value="prompts" checked onchange="toggleModes()">
+                    <div>
+                        <div class="pill-label">📝 5 промптов</div>
+                        <div class="pill-desc">Claude выбирает рандомный промпт при каждой публикации</div>
+                    </div>
+                </label>
+                <label class="mode-pill">
+                    <input type="radio" name="post_mode" id="mode_ai" value="ai_adapt" onchange="toggleModes()">
+                    <div>
+                        <div class="pill-label">🧠 ИИ-Адаптация</div>
+                        <div class="pill-desc">Парсинг вирусных постов + адаптация под нишу</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Prompts block -->
+            <div id="block_prompts" class="mode-block">
+                <div style="font-size:11px; color:var(--txt3); margin-bottom:10px;">Заполните до 5 промптов (пустые игнорируются):</div>
+                <div class="form-row"><textarea name="prompt_1" rows="2" placeholder="Промпт 1 — Экспертный пост о рынке"></textarea></div>
+                <div class="form-row"><textarea name="prompt_2" rows="2" placeholder="Промпт 2 — Личная история / факап"></textarea></div>
+                <div class="form-row"><textarea name="prompt_3" rows="2" placeholder="Промпт 3 — Жёсткий призыв / продажа"></textarea></div>
+                <div class="form-row"><textarea name="prompt_4" rows="2" placeholder="Промпт 4 — Ирония над новичками"></textarea></div>
+                <div class="form-row" style="margin-bottom:0;"><textarea name="prompt_5" rows="2" placeholder="Промпт 5 — Мотивация"></textarea></div>
+            </div>
+
+            <!-- AI adapt block -->
+            <div id="block_ai" class="mode-block" style="display:none;">
+                <div class="form-row">
+                    <label>🔍 Тематики-доноры</label>
+                    <input type="text" name="source_themes" placeholder="Напр.: поиск работы, фриланс, выгорание">
+                </div>
+                <div class="form-row">
+                    <label>🎯 Твоя ниша</label>
+                    <input type="text" name="target_theme" placeholder="Напр.: Крипта и P2P арбитраж">
+                </div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <label>⚙ Мини-промпт</label>
+                    <textarea name="mini_prompt" rows="2" placeholder="Напр.: Пиши токсично, используй сленг, в конце проси плюсик"></textarea>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- ── Language Switcher ─────────────────────────── -->
+            <div class="lang-switcher-wrap">
+                <span class="lang-switcher-label">🌐 Язык поста</span>
+                <div class="lang-pills" id="langPills">
+                    <button type="button" class="lang-pill active" data-lang="ru" onclick="setLang('ru')">🇷🇺 RU</button>
+                    <button type="button" class="lang-pill"        data-lang="en" onclick="setLang('en')">🇺🇸 EN</button>
+                    <button type="button" class="lang-pill"        data-lang="uk" onclick="setLang('uk')">🇺🇦 UA</button>
+                </div>
+                <input type="hidden" name="post_language" id="postLangInput" value="ru">
+            </div>
+
+            <!-- ── Skills (Writing Style) ────────────────────── -->
+            <div class="skills-wrap">
+                <div class="skills-label">✦ Скилл (стиль письма Claude) <span>выберите персону</span></div>
+                <div class="skills-grid">
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="" checked>
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">🤖</div>
+                            <div class="skill-card-name">Без стиля</div>
+                            <div class="skill-card-desc">Нейтральный, следует промпту</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="crypto_bro">
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">🤑</div>
+                            <div class="skill-card-name">Bold Crypto Bro</div>
+                            <div class="skill-card-desc">Агрессивный, уверенный, токсично-позитивный</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="analyst">
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">📊</div>
+                            <div class="skill-card-name">Smart Analyst</div>
+                            <div class="skill-card-desc">Аналитик, данные, сухой экспертный тон</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="provocateur">
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">🔥</div>
+                            <div class="skill-card-name">Provocateur</div>
+                            <div class="skill-card-desc">Острые мнения, споры, вирусность</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="storyteller">
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">📖</div>
+                            <div class="skill-card-name">Storyteller</div>
+                            <div class="skill-card-desc">Личные истории, эмоции, путь героя</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="hustler">
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">💼</div>
+                            <div class="skill-card-name">Hustler</div>
+                            <div class="skill-card-desc">Продажи, CTA, конверсия в клиента</div>
+                        </div>
+                    </label>
+                    <label class="skill-card">
+                        <input type="radio" name="ai_skill" value="philosopher">
+                        <div class="skill-card-inner">
+                            <div class="skill-card-icon">🧘</div>
+                            <div class="skill-card-name">Philosopher</div>
+                            <div class="skill-card-desc">Глубина, смысл, медленная жизнь</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── Proxy & Comments ─────────────────────────────── -->
+        <div class="form-row">
+            <label>Proxy (необязательно)</label>
+            <input type="text" name="proxy" placeholder="http://user:pass@ip:port">
+        </div>
+
+        <div class="comment-panel">
+            <div class="comment-panel-title">🧠 Нейрокомментинг — входящие сигналы</div>
+            <div class="form-row">
+                <label>Промпт для Claude (инструкция как реагировать на «+»)</label>
+                <textarea name="custom_prompt" rows="3" placeholder="Ты успешный инвестор. Отвечай кратко, с иронией. Не используй смайлики."></textarea>
+            </div>
+            <div class="form-row" style="margin-bottom:0;">
+                <label>CTA — финальная строка (всегда в конце ответа)</label>
+                <input type="text" name="custom_reply" placeholder="Гайд уже в шапке профиля! 🚀">
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px; margin-top:6px; margin-bottom:32px;">
+            <button type="submit" class="btn btn-violet" style="padding:12px 28px; font-size:14px;">
+                ✦ Сохранить аккаунт
+            </button>
+            <a href="/" class="btn btn-ghost" style="font-size:13px;">Пропустить →</a>
+        </div>
+    </form>
+
+    {% elif limit_reached %}
+    <div class="glass limit-banner">
+        <div class="limit-banner-icon">🛑</div>
+        <div>
+            <h3>Лимит достигнут</h3>
+            <p>Добавлено максимальное количество аккаунтов для вашего тарифа ({{ max_accounts }}). Повысьте план для добавления новых.</p>
+            <a href="https://t.me/{{ tg_bot_username }}" class="btn btn-cyan" style="font-size:12px; text-decoration:none;">
+                ↗ Повысить тариф
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- OAuth connect button -->
+    <div class="glass add-form" style="text-align:center; padding:32px 24px; margin-bottom:36px;">
+        {% if status == 'denied' %}
+        <div style="color:var(--amber); font-size:14px; margin-bottom:16px;">
+            ⚠️ Вы отменили авторизацию. Попробуйте снова.
+        </div>
+        {% elif status == 'oauth_error' %}
+        <div style="color:var(--red); font-size:14px; margin-bottom:16px;">
+            ❌ Ошибка при авторизации через Meta. Попробуйте позже.
+        </div>
+        {% endif %}
+        <a href="/auth/threads/login" class="btn btn-primary btn-lg"
+           style="display:inline-flex; align-items:center; gap:10px; padding:18px 40px; font-size:16px; font-weight:700; text-decoration:none; border-radius:14px; background:linear-gradient(135deg,var(--violet),var(--cyan)); color:#fff; letter-spacing:.3px;">
+            <svg width="22" height="22" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+                <path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.986 0-27.449 6.396-35.12 18.036l13.779 9.452c5.73-8.695 14.724-10.548 21.348-10.548h.229c8.249.053 14.474 2.452 18.503 7.129 2.932 3.405 4.893 8.111 5.864 14.05-7.314-1.243-15.224-1.626-23.68-1.14-23.82 1.371-39.134 15.264-38.105 34.568.522 9.792 5.4 18.216 13.735 23.719 7.047 4.652 16.124 6.927 25.557 6.412 12.458-.683 22.231-5.436 29.049-14.127 5.178-6.6 8.453-15.153 9.899-25.93 5.937 3.583 10.337 8.298 12.767 13.966 4.132 9.635 4.373 25.468-8.546 38.376-11.319 11.308-24.925 16.2-45.488 16.351-22.809-.169-40.06-7.484-51.275-21.742C35.236 139.966 29.808 120.682 29.605 96c.203-24.682 5.63-43.966 16.133-57.317C57.053 24.425 74.303 17.11 97.113 16.94c22.96.17 40.526 7.52 52.208 21.847 5.735 7.08 10.018 15.96 12.818 26.48l16.149-4.348c-3.441-12.71-8.95-23.703-16.487-32.798C147.042 10.616 125.202 1.216 97.17 1h-.254C68.882 1.216 47.292 10.652 32.788 28.08 19.882 43.56 13.233 65.317 13.01 96.04l-.01.04.01.04c.223 30.723 6.872 52.48 19.778 67.92 14.504 17.43 36.094 26.866 64.128 27.082h.254c24.042-.172 41.076-6.481 55.002-20.398 18.963-18.948 18.392-42.656 12.145-57.223-4.404-10.266-12.81-18.618-22.78-23.513Z" fill="currentColor"/>
+            </svg>
+            Подключить аккаунт Threads
+        </a>
+        <p style="color:var(--txt3); font-size:12px; margin-top:14px; margin-bottom:0;">
+            Вы будете перенаправлены на страницу авторизации Meta. Токен сохранится автоматически.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- ══════════════════════════════════
+         ACCOUNTS TABLE
+    ══════════════════════════════════════ -->
+    <div class="section-heading" style="margin-top:8px;">
+        <h2>Подключённые аккаунты</h2>
+        <span class="tag">{{ current_count }} активно</span>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название</th>
+                    <th>Статус</th>
+                    <th>Threads ID</th>
+                    <th>Режим</th>
+                    <th>Тайминги</th>
+                    <th>Прокси</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for acc in accounts %}
+                <tr>
+                    <td style="color:var(--txt3); font-size:12px;">#{{ acc['id'] }}</td>
+
+                    <td><strong style="color:var(--txt);">{{ acc['name'] }}</strong></td>
+
+                    <td>
+                        <label class="switch">
+                            <input type="checkbox"
+                                   onchange="toggleAccount({{ acc['id'] }})"
+                                   {% if acc['is_active'] == 1 %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </td>
+
+                    <td><span class="badge">{{ acc['threads_user_id'] }}</span></td>
+
+                    <td>
+                        {% if acc['post_mode'] == 'ai_adapt' %}
+                            <span class="badge badge-mode-ai">ИИ-Адаптация</span>
+                        {% else %}
+                            <span class="badge badge-mode-prompt">5 Промптов</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="timing-stack">
+                            <span class="tbadge tbadge-post"     title="Постинг">✍ {{ acc['pub_delay_min'] or 15 }}–{{ acc['pub_delay_max'] or 45 }} мин</span>
+                            <span class="tbadge tbadge-outreach" title="Outreach">💬 {{ acc['outreach_delay_min'] or 10 }}–{{ acc['outreach_delay_max'] or 30 }} мин</span>
+                        </div>
+                    </td>
+
+                    <td style="color:var(--txt3); font-size:12px;">
+                        {{ acc['proxy'] if acc['proxy'] else '—' }}
+                    </td>
+
+                    <td>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <a href="/edit_account/{{ acc['id'] }}" class="action-btn" title="Редактировать">✏️</a>
+                            <form action="/delete_account/{{ acc['id'] }}" method="post"
+                                  onsubmit="return confirm('Удалить аккаунт «{{ acc['name'] }}»?');" style="display:inline;">
+                                <button type="submit" class="action-btn" title="Удалить">🗑️</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% if not accounts %}
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        <div class="empty-icon">🕳</div>
+                        Нет подключённых аккаунтов. Добавьте первый выше.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% endif %}
+</div><!-- /page-wrap -->
+
+<script>
+    /* ─── Mode toggle ───────────────────────────────────────── */
+    function toggleModes() {
+        const isPrompts = document.getElementById('mode_prompts')?.checked;
+        if (isPrompts === undefined) return;
+        document.getElementById('block_prompts').style.display = isPrompts ? 'block' : 'none';
+        document.getElementById('block_ai').style.display      = isPrompts ? 'none'  : 'block';
+    }
+
+    /* ─── Language switcher ─────────────────────────────────── */
+    function setLang(lang) {
+        document.getElementById('postLangInput').value = lang;
+        document.querySelectorAll('.lang-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+    }
+
+    /* ─── Account toggle (AJAX) ─────────────────────────────── */
+    function toggleAccount(accountId) {
+        fetch(`/toggle_account/${accountId}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => console.log(`Account ${accountId} → state ${data.new_state}`))
+            .catch(console.error);
+    }
+
+    /* Init on load */
+    window.addEventListener('DOMContentLoaded', toggleModes);
+</script>
+<footer style="text-align:center; padding: 16px; color: #4d5566; font-size: 11px; font-family: 'DM Sans', sans-serif;">
+    ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ КОТУЛАЙ МИХАЙЛО ВІТАЛІЙОВИЧ
+</footer>
+</body>
+</html>

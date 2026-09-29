@@ -1,0 +1,39 @@
+# Environment configuration (contains sensitive API keys and secrets)
+.env
+.env.local
+.env.*.local
+
+# SQLite Database files
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Static upload caches
+static/uploads/*
+!static/uploads/.gitkeep
