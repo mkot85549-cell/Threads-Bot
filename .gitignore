@@ -38,3 +38,7 @@ desktop.ini
 # Static upload caches
 static/uploads/*
 !static/uploads/.gitkeep
+
+# Локальные настройки редакторов и ИИ-инструментов
+.claude/
+.continue/
